@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bénin Info Culture - BIC</title>
+<meta name="description" content="La culture du Bénin, racontée par celles et ceux qui la vivent. Média culturel basé à Ouidah : web, radio, vidéo.">
+<meta property="og:title" content="Bénin Info Culture - BIC">
+<meta property="og:description" content="La culture du Bénin, racontée par celles et ceux qui la vivent.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://bicouidah.com/">
+<meta name="theme-color" content="#1C1A4A">
+<link rel="icon" type="image/png" href="icone-bic.png">
+<link rel="apple-touch-icon" href="icone-bic.png">
+<meta property="og:image" content="https://bicouidah.com/logo-bic.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --encre:#1C1A4A; --encre-2:#4A4870; --fond:#FFFFFF; --surface:#F3F2F7; --ligne:#DCDAE6;
+  --ocre:#B5652B; --indigo:#2E3A8C; --rouge:#B3261E; --jaune:#D99A00; --vert:#2F6B3A; --lagune:#1F7A99;
+  --titre:'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --texte:'Literata', Georgia, 'Times New Roman', serif;
+  --large:1180px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fond);color:var(--encre);font:400 1.0625rem/1.65 var(--texte)}
+img{max-width:100%;display:block}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--lagune);outline-offset:3px}
+h1,h2,h3{font-family:var(--titre);line-height:1.08;margin:0;letter-spacing:-.01em}
+h2{font-size:clamp(1.5rem,3.2vw,2.1rem);font-weight:750;margin-bottom:1.1rem}
+h3{font-size:1.2rem;font-weight:700}
+.conteneur{max-width:var(--large);margin:0 auto;padding:0 1.25rem}
+.visuellement-cache{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- En-tête ---------- */
+.entete{border-bottom:1px solid var(--ligne);background:var(--fond);position:sticky;top:0;z-index:20}
+.entete-haut{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0}
+.logo{display:flex;align-items:center;gap:.7rem;text-decoration:none}
+.logo img{width:56px;height:56px;flex:none;mix-blend-mode:multiply}
+.logo-grand{width:180px;height:180px;mix-blend-mode:multiply;margin:0 0 1rem}
+.logo-nom{font:800 1.5rem/1 var(--titre);letter-spacing:-.02em}
+.logo-sous{display:block;font:500 .78rem/1.2 var(--titre);color:var(--encre-2);letter-spacing:0}
+.nav-principale{display:flex;gap:1.4rem;font:600 .98rem var(--titre)}
+.nav-principale a{text-decoration:none;padding:.3rem 0;border-bottom:2px solid transparent}
+.nav-principale a:hover,.nav-principale a[aria-current="page"]{border-bottom-color:var(--encre)}
+.bouton-menu{display:none;background:none;border:1.5px solid var(--encre);color:var(--encre);font:600 .95rem var(--titre);padding:.45rem .8rem;cursor:pointer}
+.bande-rubriques{display:flex;gap:1.3rem;overflow-x:auto;padding:.55rem 0 .7rem;scrollbar-width:none}
+.bande-rubriques::-webkit-scrollbar{display:none}
+.bande-rubriques a{white-space:nowrap}
+@media (max-width:860px){
+  .nav-principale{display:none}
+  .bouton-menu{display:block}
+  .nav-principale.ouverte{display:flex;flex-direction:column;gap:.2rem;position:absolute;left:0;right:0;top:100%;background:var(--fond);padding:.6rem 1.25rem 1.2rem;border-bottom:1px solid var(--ligne)}
+  .nav-principale.ouverte a{padding:.6rem 0;font-size:1.1rem}
+}
+
+/* ---------- Étiquette de rubrique (la « pièce » de tissu) ---------- */
+.tag{display:inline-flex;align-items:center;gap:.45em;font:650 .84rem/1.2 var(--titre);color:var(--encre);text-decoration:none}
+.tag:hover{text-decoration:underline}
+.piece{width:.85em;height:.85em;flex:none;background:var(--c);clip-path:polygon(12% 0,100% 14%,86% 100%,0 84%)}
+
+/* ---------- La une ---------- */
+.une{display:grid;grid-template-columns:1.35fr 1fr;align-items:end;margin:2rem 0 3.2rem}
+.une-image{aspect-ratio:4/3;background:var(--surface);overflow:hidden;clip-path:polygon(0 2%,99% 0,100% 97%,1% 100%)}
+.une-image img{width:100%;height:100%;object-fit:cover}
+.une-bloc{position:relative;margin-left:-5rem;margin-bottom:-1.5rem;background:var(--c);color:var(--ct);padding:2.2rem 2rem 2.4rem;clip-path:polygon(3% 0,100% 5%,97% 100%,0 94%)}
+.une-bloc .rubrique{font:650 .9rem var(--titre);margin:0 0 .8rem}
+.une-bloc h1{font-size:clamp(1.8rem,4vw,3rem);font-weight:800}
+.une-bloc h1 a{text-decoration:none}
+.une-bloc h1 a:hover{text-decoration:underline;text-decoration-thickness:2px}
+.une-bloc p{margin:.9rem 0 0;font-size:1.05rem}
+.une-bloc .partenaire{font:600 .8rem var(--titre);opacity:.85;margin-top:1.1rem}
+@media (max-width:760px){
+  .une{grid-template-columns:1fr;margin-top:1rem}
+  .une-bloc{margin:-2.5rem .6rem 0;padding:1.6rem 1.3rem 1.8rem}
+}
+
+/* ---------- Accueil sans contenu : la composition des matières ---------- */
+.ouverture{display:grid;grid-template-columns:1.1fr 1fr;gap:2.5rem;align-items:center;padding:3rem 0 3.5rem}
+.ouverture h1{font-size:clamp(2.3rem,6vw,4.4rem);font-weight:800;letter-spacing:-.025em}
+.ouverture p{font-size:1.15rem;max-width:34rem;margin:1.2rem 0 1.6rem}
+.ouverture svg{width:100%;height:auto;max-width:460px;justify-self:center}
+@media (max-width:760px){.ouverture{grid-template-columns:1fr;padding-top:1.8rem}.ouverture svg{max-width:300px;order:-1}}
+@media (prefers-reduced-motion:no-preference){
+  .ouverture svg polygon{animation:poser .7s cubic-bezier(.2,.7,.2,1) both}
+  .ouverture svg polygon:nth-child(2){animation-delay:.08s}.ouverture svg polygon:nth-child(3){animation-delay:.16s}
+  .ouverture svg polygon:nth-child(4){animation-delay:.24s}.ouverture svg polygon:nth-child(5){animation-delay:.32s}
+  @keyframes poser{from{opacity:0;transform:translateY(14px) rotate(-2deg)}to{opacity:1;transform:none}}
+}
+
+/* ---------- Boutons ---------- */
+.bouton{display:inline-block;background:var(--encre);color:#fff;font:650 1rem var(--titre);padding:.8rem 1.3rem;text-decoration:none;border:none;cursor:pointer;clip-path:polygon(0 4%,100% 0,98% 100%,2% 96%)}
+.bouton:hover{background:var(--indigo)}
+.bouton.secondaire{background:none;color:var(--encre);box-shadow:inset 0 0 0 2px var(--encre);clip-path:none}
+.bouton.secondaire:hover{background:var(--surface)}
+
+/* ---------- Sections ---------- */
+.section{padding:2.6rem 0;border-top:1px solid var(--ligne)}
+.section-tete{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap}
+.section-tete a{font:600 .95rem var(--titre)}
+
+/* ---------- Liste de contenus ---------- */
+.grille{display:grid;grid-template-columns:repeat(3,1fr);gap:2.2rem 1.8rem}
+@media (max-width:960px){.grille{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:600px){.grille{grid-template-columns:1fr;gap:1.8rem}}
+.item-image{display:block;aspect-ratio:3/2;background:var(--surface);overflow:hidden;margin-bottom:.9rem;clip-path:polygon(0 0,100% 3%,98% 100%,1% 97%)}
+.item-image img{width:100%;height:100%;object-fit:cover}
+.item-image.vide{background:var(--c);opacity:.9}
+.item h3{margin:.45rem 0 .4rem}
+.item h3 a{text-decoration:none}
+.item h3 a:hover{text-decoration:underline}
+.item p{margin:0 0 .5rem;color:var(--encre-2);font-size:.98rem}
+.meta{font:500 .85rem/1.4 var(--titre);color:var(--encre-2)}
+.meta a{text-decoration:none}.meta a:hover{text-decoration:underline}
+.type-media{font:650 .78rem var(--titre);margin-left:.4rem;color:var(--encre-2)}
+
+/* ---------- Agenda ---------- */
+.agenda{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:0 2rem}
+@media (max-width:700px){.agenda{grid-template-columns:1fr}}
+.evt{display:grid;grid-template-columns:4.6rem 1fr;gap:1rem;padding:1.1rem 0;border-bottom:1px solid var(--ligne)}
+.evt-date{text-align:center;background:var(--surface);padding:.55rem .3rem;clip-path:polygon(4% 0,100% 5%,96% 100%,0 95%)}
+.evt-jour{display:block;font:800 1.9rem/1 var(--titre)}
+.evt-mois{display:block;font:600 .85rem var(--titre)}
+.evt h3{font-size:1.1rem;margin-bottom:.3rem}
+.evt p{margin:0;font-size:.95rem;color:var(--encre-2)}
+.evt .lien-evt{font:600 .88rem var(--titre)}
+
+/* ---------- Article ---------- */
+.article{max-width:46rem;margin:0 auto;padding:2.2rem 0 3rem}
+.article h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;margin:.8rem 0 1rem;letter-spacing:-.02em}
+.chapo{font-size:1.22rem;line-height:1.55;margin:0 0 1.2rem}
+.article-image{margin:1.6rem 0;clip-path:polygon(0 1%,100% 0,99% 100%,1% 99%)}
+.corps p{margin:0 0 1.15em}
+.corps{font-size:1.1rem;line-height:1.75}
+.media{margin:1.6rem 0;aspect-ratio:16/9;background:var(--surface)}
+.media iframe{width:100%;height:100%;border:0}
+.puces{display:flex;flex-wrap:wrap;gap:.5rem;margin:1.6rem 0}
+.puce{font:600 .85rem var(--titre);text-decoration:none;padding:.3rem .7rem;box-shadow:inset 0 0 0 1.5px var(--ligne)}
+.puce:hover{box-shadow:inset 0 0 0 1.5px var(--encre)}
+.partage{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;padding:1.2rem 0;border-top:1px solid var(--ligne);border-bottom:1px solid var(--ligne);margin:2rem 0}
+.partage span{font:650 .95rem var(--titre);margin-right:.3rem}
+.partage a,.partage button{font:650 .92rem var(--titre);padding:.55rem .95rem;text-decoration:none;border:none;cursor:pointer;background:var(--surface);color:var(--encre)}
+.partage .whatsapp{background:#1F7A4A;color:#fff}
+.affiche-partenaire{margin:2.4rem 0;padding:1.2rem;background:var(--surface)}
+.affiche-partenaire p{margin:0 0 .6rem;font:600 .82rem var(--titre);color:var(--encre-2)}
+.auteur{display:flex;gap:.9rem;align-items:center;margin:1rem 0}
+.auteur img,.auteur .avatar{width:48px;height:48px;object-fit:cover;background:var(--surface);clip-path:polygon(8% 0,100% 8%,92% 100%,0 92%)}
+.badge-fondateur{font:650 .74rem var(--titre);background:var(--jaune);color:var(--encre);padding:.12rem .45rem;margin-left:.4rem}
+
+/* ---------- En-tête de rubrique ---------- */
+.tete-rubrique{padding:2.4rem 0 1.6rem}
+.tete-rubrique .bande{display:inline-block;background:var(--c);color:var(--ct);padding:1rem 1.6rem 1.1rem;clip-path:polygon(2% 0,100% 6%,98% 100%,0 92%)}
+.tete-rubrique h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800}
+.tete-rubrique p{max-width:40rem;margin:1rem 0 0}
+
+/* ---------- Pages de texte ---------- */
+.page{max-width:46rem;padding:2.4rem 0 3rem}
+.page h1{font-size:clamp(2rem,5vw,3rem);font-weight:800;margin-bottom:1.2rem}
+.page h2{margin-top:2.4rem}
+.matieres{list-style:none;padding:0;margin:0}
+.matieres li{display:grid;grid-template-columns:2.4rem 1fr;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--ligne)}
+.matieres .piece{width:2.4rem;height:2.4rem}
+.matieres strong{font-family:var(--titre)}
+.langues{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0 1.8rem;margin-top:1.4rem}
+.langues a{display:block;padding:.75rem 0;border-bottom:1px solid var(--ligne);text-decoration:none}
+.langues a:hover strong{text-decoration:underline}
+.langues strong{font-family:var(--titre);font-size:1.08rem}
+.langues span{display:block;font-size:.88rem;color:var(--encre-2)}
+.partenaires{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1.5rem;margin:1.5rem 0}
+.partenaires a{display:block;text-decoration:none;text-align:center;font:600 .95rem var(--titre)}
+.partenaires img{height:90px;width:100%;object-fit:contain;margin-bottom:.5rem}
+
+/* ---------- Lettre d'information ---------- */
+.lettre{background:var(--encre);color:#fff;padding:2.6rem 0;margin-top:1rem}
+.lettre-inner{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center}
+.lettre h2{margin-bottom:.5rem}
+.lettre p{margin:0;color:#D8D6EA}
+.lettre form{display:flex;gap:.6rem;flex-wrap:wrap}
+.lettre input{flex:1 1 220px;font:400 1rem var(--titre);padding:.8rem .9rem;border:none;min-width:0}
+.lettre .bouton{background:var(--jaune);color:var(--encre)}
+.lettre .bouton:hover{background:#F0B41A}
+.lettre .retour{flex-basis:100%;margin-top:.4rem;font:500 .92rem var(--titre);color:#fff;min-height:1.3em}
+@media (max-width:760px){.lettre-inner{grid-template-columns:1fr}}
+
+/* ---------- Appel aux créateurs ---------- */
+.appel{display:grid;grid-template-columns:auto 1fr auto;gap:1.5rem;align-items:center;padding:2rem 0}
+.appel svg{width:70px;height:70px}
+.appel h2{margin:0 0 .3rem;font-size:1.5rem}
+.appel p{margin:0;color:var(--encre-2)}
+@media (max-width:700px){.appel{grid-template-columns:1fr}.appel svg{display:none}}
+
+/* ---------- États ---------- */
+.vide-msg{padding:1.4rem;background:var(--surface);font:500 1rem var(--titre)}
+.chargement{padding:3rem 0;font:500 1rem var(--titre);color:var(--encre-2)}
+
+/* ---------- Pied de page ---------- */
+.pied{border-top:1px solid var(--ligne);padding:2.4rem 0 3rem;font:500 .95rem var(--titre)}
+.pied-inner{display:flex;justify-content:space-between;gap:2rem;flex-wrap:wrap}
+.pied nav{display:flex;gap:1.2rem;flex-wrap:wrap}
+.pied a{text-decoration:none}.pied a:hover{text-decoration:underline}
+.pied p{margin:.3rem 0;color:var(--encre-2)}
+</style>
+</head>
+<body>
+
+<header class="entete">
+  <div class="conteneur">
+    <div class="entete-haut">
+      <a class="logo" href="#/" aria-label="Bénin Info Culture, accueil">
+        <img src="logo-bic.jpg" alt="" width="56" height="56">
+        <span><span class="logo-nom">BIC</span><span class="logo-sous">Bénin Info Culture</span></span>
+      </a>
+      <button class="bouton-menu" id="bouton-menu" aria-expanded="false" aria-controls="nav">Menu</button>
+      <nav class="nav-principale" id="nav" aria-label="Navigation principale">
+        <a href="#/">Accueil</a>
+        <a href="#/agenda">Agenda</a>
+        <a href="#/communautes">Communautés</a>
+        <a href="#/a-propos">À propos</a>
+        <a href="#/partenaires">Partenaires</a>
+        <a href="#/espace">Espace créateur</a>
+      </nav>
+    </div>
+    <nav class="bande-rubriques" id="bande-rubriques" aria-label="Rubriques"></nav>
+  </div>
+</header>
+
+<main id="app" class="conteneur" tabindex="-1"><p class="chargement">Chargement…</p></main>
+
+<section class="lettre" aria-labelledby="titre-lettre">
+  <div class="conteneur lettre-inner">
+    <div>
+      <h2 id="titre-lettre">La lettre de BIC</h2>
+      <p>Les nouveaux contenus et les rendez-vous culturels, une fois par semaine dans votre boîte mail.</p>
+    </div>
+    <form id="form-lettre" novalidate>
+      <label for="email-lettre" class="visuellement-cache">Votre adresse e-mail</label>
+      <input type="email" id="email-lettre" placeholder="Votre adresse e-mail" autocomplete="email" required>
+      <button class="bouton" type="submit">S'inscrire</button>
+      <p class="retour" id="retour-lettre" role="status"></p>
+    </form>
+  </div>
+</section>
+
+<footer class="pied">
+  <div class="conteneur pied-inner">
+    <div>
+      <p><strong>Bénin Info Culture - BIC</strong>, Ouidah, Bénin</p>
+      <p><a href="mailto:contact@bicouidah.com">contact@bicouidah.com</a></p>
+    </div>
+    <nav aria-label="Liens du pied de page">
+      <a href="#/agenda">Agenda</a>
+      <a href="#/communautes">Communautés</a>
+      <a href="#/a-propos">À propos</a>
+      <a href="#/partenaires">Devenir partenaire</a>
+      <a href="#/espace">Espace créateur</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+/* =========================================================
+   CONFIGURATION
+   ========================================================= */
+const SUPABASE_URL = 'https://sxhhidejldqqgcuyjfwv.supabase.co';
+const SUPABASE_CLE = 'sb_publishable_B7Ls5-LBiaSnAxNa12NsWw_SLBHfAhO';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_CLE);
+const SITE = 'https://bicouidah.com/';
+const app = document.getElementById('app');
+
+/* Couleur de chaque rubrique : les matières du Bénin */
+const COULEURS = {
+  'vodun-spiritualites':'vert', 'patrimoine-memoire':'rouge', 'langues-ecritures':'indigo',
+  'musique-danse':'jaune', 'arts-visuels':'ocre', 'cinema-audiovisuel':'lagune',
+  'lettres-parole':'indigo', 'artisanat-mode':'ocre', 'cuisine-terroirs':'jaune',
+  'environnement-culture':'vert', 'agenda-festivals':'rouge', 'science-tradition':'lagune'
+};
+function couleur(slug){
+  const v = COULEURS[slug] || 'ocre';
+  return { fond:'var(--' + v + ')', texte: v === 'jaune' ? 'var(--encre)' : '#FFFFFF' };
+}
+function styleCouleur(slug){ const c = couleur(slug); return '--c:' + c.fond + ';--ct:' + c.texte; }
+
+/* =========================================================
+   OUTILS
+   ========================================================= */
+function esc(t){ return String(t ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function urlSure(u){ try { const x = new URL(u); return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : ''; } catch(e){ return ''; } }
+const fmtDate = d => new Intl.DateTimeFormat('fr-FR', {day:'numeric', month:'long', year:'numeric'}).format(new Date(d));
+const fmtJour = d => new Intl.DateTimeFormat('fr-FR', {day:'numeric'}).format(new Date(d));
+const fmtMois = d => new Intl.DateTimeFormat('fr-FR', {month:'short'}).format(new Date(d));
+const fmtHeure = d => new Intl.DateTimeFormat('fr-FR', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}).format(new Date(d));
+const aujourdhui = () => new Date().toISOString().slice(0,10);
+function paragraphes(t){ return String(t || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean).map(p => '<p>' + esc(p).replace(/\n/g,'<br>') + '</p>').join(''); }
+function idYoutube(u){ const m = String(u || '').match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/); return m ? m[1] : null; }
+function erreurMsg(){ return '<p class="vide-msg">La connexion à la base de données a échoué. Vérifiez votre connexion internet, puis rechargez la page.</p>'; }
+function titrePage(t){ document.title = t ? t + ' - BIC' : 'Bénin Info Culture - BIC'; }
+
+let RUBRIQUES = [];
+
+/* Étiquette de rubrique */
+function tag(r){
+  if (!r) return '';
+  return '<a class="tag" href="#/rubrique/' + esc(r.slug) + '" style="' + styleCouleur(r.slug) + '"><span class="piece" aria-hidden="true"></span>' + esc(r.nom) + '</a>';
+}
+const TYPES = {video:'Vidéo', audio:'Audio'};
+
+/* Carte d'un contenu */
+function carte(c){
+  const r = c.rubriques;
+  const img = urlSure(c.image_url);
+  const image = img
+    ? '<a class="item-image" href="#/contenu/' + c.id + '" tabindex="-1" aria-hidden="true"><img src="' + esc(img) + '" alt="" loading="lazy"></a>'
+    : '<a class="item-image vide" href="#/contenu/' + c.id + '" tabindex="-1" aria-hidden="true" style="' + styleCouleur(r && r.slug) + '"></a>';
+  const auteur = c.createurs ? 'Par <a href="#/createur/' + c.createur_id + '">' + esc(c.createurs.nom) + '</a>, ' : '';
+  return '<article class="item">' + image + tag(r) + (TYPES[c.type] ? '<span class="type-media">' + TYPES[c.type] + '</span>' : '') +
+    '<h3><a href="#/contenu/' + c.id + '">' + esc(c.titre) + '</a></h3>' +
+    (c.resume ? '<p>' + esc(c.resume) + '</p>' : '') +
+    '<p class="meta">' + auteur + (c.publie_le ? fmtDate(c.publie_le) : '') + '</p></article>';
+}
+
+/* Ligne d'agenda */
+function ligneEvenement(e){
+  const lieu = [e.lieu, e.ville].filter(Boolean).map(esc).join(', ');
+  const lien = urlSure(e.lien);
+  return '<li class="evt"><div class="evt-date" aria-hidden="true"><span class="evt-jour">' + fmtJour(e.date_debut) + '</span><span class="evt-mois">' + fmtMois(e.date_debut) + '</span></div>' +
+    '<div><h3>' + esc(e.titre) + '</h3><p>' + fmtHeure(e.date_debut) + (lieu ? '<br>' + lieu : '') + '</p>' +
+    (e.description ? '<p>' + esc(e.description) + '</p>' : '') +
+    (lien ? '<p><a class="lien-evt" href="' + esc(lien) + '" target="_blank" rel="noopener">En savoir plus</a></p>' : '') + '</div></li>';
+}
+
+const SELECT_CONTENU = 'id, titre, resume, type, image_url, publie_le, createur_id, rubrique_id, rubriques(nom, slug), createurs(nom)';
+
+/* La composition des cinq matières */
+const COMPOSITION = '<svg viewBox="0 0 400 400" role="img" aria-label="Cinq pièces de couleur assemblées : ocre, indigo, rouge, jaune et bleu">' +
+  '<polygon points="20,40 250,18 238,190 34,206" fill="#B5652B"/>' +
+  '<polygon points="210,60 382,78 370,262 196,240" fill="#2E3A8C"/>' +
+  '<polygon points="46,176 196,168 206,352 30,370" fill="#B3261E"/>' +
+  '<polygon points="170,226 300,214 312,330 180,346" fill="#D99A00"/>' +
+  '<polygon points="280,250 386,262 374,384 268,372" fill="#1F7A99"/></svg>';
+
+const PIECE_APPEL = '<svg viewBox="0 0 70 70" aria-hidden="true"><polygon points="4,8 66,2 62,62 8,68" fill="#2F6B3A"/><polygon points="20,20 50,17 48,48 22,50" fill="#D99A00"/></svg>';
+
+function blocAppel(){
+  return '<section class="appel" aria-labelledby="titre-appel">' + PIECE_APPEL +
+    '<div><h2 id="titre-appel">Devenez créateur fondateur</h2><p>Journalistes, artistes, chercheurs, conteurs : publiez vos récits sur BIC. Les vingt premiers créateurs gardent le badge « fondateur » à vie.</p></div>' +
+    '<a class="bouton" href="#/espace">Créer mon espace</a></section>';
+}
+
+/* =========================================================
+   PAGES
+   ========================================================= */
+async function pageAccueil(){
+  titrePage('');
+  const auj = aujourdhui();
+  const [une, contenus, evts] = await Promise.all([
+    sb.from('evenements').select('id, titre, description, affiche_url, lien, date_debut, lieu, ville')
+      .eq('statut','publie').eq('option_payante','une').eq('paiement_statut','paye')
+      .lte('mise_en_avant_debut', auj).gte('mise_en_avant_fin', auj).limit(1),
+    sb.from('contenus').select(SELECT_CONTENU).eq('statut','publie').order('publie_le', {ascending:false}).limit(13),
+    sb.from('evenements').select('*').eq('statut','publie').gte('date_debut', new Date().toISOString()).order('date_debut').limit(4)
+  ]);
+  if (contenus.error) { app.innerHTML = erreurMsg(); return; }
+  let liste = contenus.data || [];
+  let html = '';
+
+  const u = une.data && une.data[0];
+  if (u) {
+    const img = urlSure(u.affiche_url);
+    const lien = urlSure(u.lien);
+    html += '<section class="une" aria-label="À la une">' +
+      '<div class="une-image">' + (img ? '<img src="' + esc(img) + '" alt="Affiche : ' + esc(u.titre) + '">' : '') + '</div>' +
+      '<div class="une-bloc" style="' + styleCouleur('agenda-festivals') + '"><p class="rubrique">Rendez-vous culturel</p>' +
+      '<h1>' + (lien ? '<a href="' + esc(lien) + '" target="_blank" rel="noopener">' + esc(u.titre) + '</a>' : esc(u.titre)) + '</h1>' +
+      '<p>' + fmtHeure(u.date_debut) + ([u.lieu, u.ville].filter(Boolean).length ? ', ' + [u.lieu, u.ville].filter(Boolean).map(esc).join(', ') : '') + '</p>' +
+      '<p class="partenaire">Mise en avant partenaire</p></div></section>';
+  } else if (liste.length) {
+    const c = liste.shift();
+    const r = c.rubriques;
+    const img = urlSure(c.image_url);
+    html += '<section class="une" aria-label="À la une">' +
+      '<div class="une-image">' + (img ? '<img src="' + esc(img) + '" alt="">' : '') + '</div>' +
+      '<div class="une-bloc" style="' + styleCouleur(r && r.slug) + '">' + (r ? '<p class="rubrique">' + esc(r.nom) + '</p>' : '') +
+      '<h1><a href="#/contenu/' + c.id + '">' + esc(c.titre) + '</a></h1>' + (c.resume ? '<p>' + esc(c.resume) + '</p>' : '') + '</div></section>';
+  } else {
+    html += '<section class="ouverture"><div><h1>La culture du Bénin, racontée par celles et ceux qui la vivent.</h1>' +
+      '<p>Arts, patrimoines, langues, spiritualités : BIC ouvre son espace aux journalistes et aux créateurs de tout le pays, du nord au sud.</p>' +
+      '<a class="bouton" href="#/espace">Publier sur BIC</a></div>' + COMPOSITION + '</section>';
+  }
+
+  html += '<section class="section" aria-labelledby="titre-agenda"><div class="section-tete"><h2 id="titre-agenda">Prochains rendez-vous</h2><a href="#/agenda">Tout l\'agenda</a></div>';
+  html += (evts.data && evts.data.length)
+    ? '<ul class="agenda">' + evts.data.map(ligneEvenement).join('') + '</ul>'
+    : '<p class="vide-msg">Aucun rendez-vous annoncé pour l\'instant. Vous organisez un événement culturel ? Annoncez-le gratuitement dans l\'agenda. <a href="#/espace">Proposer un événement</a></p>';
+  html += '</section>';
+
+  if (liste.length) {
+    html += '<section class="section" aria-labelledby="titre-derniers"><h2 id="titre-derniers">Derniers contenus</h2><div class="grille">' + liste.map(carte).join('') + '</div></section>';
+  }
+  html += '<div class="section">' + blocAppel() + '</div>';
+  app.innerHTML = html;
+}
+
+async function pageRubrique(slug){
+  const r = RUBRIQUES.find(x => x.slug === slug);
+  if (!r) { pageIntrouvable(); return; }
+  titrePage(r.nom);
+  const { data, error } = await sb.from('contenus').select(SELECT_CONTENU).eq('statut','publie').eq('rubrique_id', r.id).order('publie_le', {ascending:false}).limit(30);
+  if (error) { app.innerHTML = erreurMsg(); return; }
+  app.innerHTML = '<section class="tete-rubrique"><div class="bande" style="' + styleCouleur(r.slug) + '"><h1>' + esc(r.nom) + '</h1></div>' +
+    (r.description ? '<p>' + esc(r.description) + '</p>' : '') + '</section>' +
+    (data.length ? '<div class="grille" style="padding-bottom:3rem">' + data.map(carte).join('') + '</div>'
+      : '<p class="vide-msg">Cette rubrique attend ses premiers récits. Vous avez un sujet ? <a href="#/espace">Proposez-le sur BIC</a>.</p><div style="height:3rem"></div>');
+}
+
+async function pageContenu(id){
+  const { data: c, error } = await sb.from('contenus')
+    .select('*, rubriques(nom, slug), createurs(nom, photo_url, specialite, fondateur), contenus_langues(langues(nom, slug))')
+    .eq('id', id).maybeSingle();
+  if (error || !c) { pageIntrouvable(); return; }
+  titrePage(c.titre);
+  compterLecture(c.id);
+  const r = c.rubriques;
+  const img = urlSure(c.image_url);
+  const media = urlSure(c.media_url);
+  const yt = idYoutube(media);
+  const a = c.createurs;
+  const langues = (c.contenus_langues || []).map(x => x.langues).filter(Boolean);
+  const url = SITE + '#/contenu/' + c.id;
+  const texteWa = encodeURIComponent(c.titre + ' - à lire sur BIC : ' + url);
+
+  let html = '<article class="article">' + tag(r) + '<h1>' + esc(c.titre) + '</h1>' +
+    (c.resume ? '<p class="chapo">' + esc(c.resume) + '</p>' : '');
+  if (a) {
+    const photo = urlSure(a.photo_url);
+    html += '<div class="auteur">' + (photo ? '<img src="' + esc(photo) + '" alt="">' : '<span class="avatar" aria-hidden="true"></span>') +
+      '<div class="meta">Par <a href="#/createur/' + c.createur_id + '"><strong>' + esc(a.nom) + '</strong></a>' +
+      (a.fondateur ? '<span class="badge-fondateur">Fondateur</span>' : '') +
+      (a.specialite ? '<br>' + esc(a.specialite) : '') + (c.publie_le ? '<br>' + fmtDate(c.publie_le) : '') + '</div></div>';
+  }
+  if (yt) html += '<div class="media"><iframe src="https://www.youtube-nocookie.com/embed/' + yt + '" title="Vidéo : ' + esc(c.titre) + '" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>';
+  else if (img) html += '<img class="article-image" src="' + esc(img) + '" alt="">';
+  if (media && !yt) html += '<p><a class="bouton secondaire" href="' + esc(media) + '" target="_blank" rel="noopener">' + (c.type === 'audio' ? 'Écouter' : 'Voir le média') + '</a></p>';
+  html += '<div class="corps">' + paragraphes(c.corps) + '</div>';
+  if (langues.length) html += '<div class="puces" aria-label="Communautés linguistiques">' + langues.map(l => '<a class="puce" href="#/communaute/' + esc(l.slug) + '">' + esc(l.nom) + '</a>').join('') + '</div>';
+  html += '<div class="partage"><span>Partager</span>' +
+    '<a class="whatsapp" href="https://wa.me/?text=' + texteWa + '" target="_blank" rel="noopener">WhatsApp</a>' +
+    '<a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url) + '" target="_blank" rel="noopener">Facebook</a>' +
+    '<a href="https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url) + '" target="_blank" rel="noopener">LinkedIn</a>' +
+    '<button type="button" id="copier-lien">Copier le lien</button></div>';
+  html += '<div id="affiche"></div></article><div id="a-lire"></div>';
+  app.innerHTML = html;
+
+  document.getElementById('copier-lien').addEventListener('click', async e => {
+    try { await navigator.clipboard.writeText(url); e.target.textContent = 'Lien copié'; } catch(err) { e.target.textContent = url; }
+  });
+
+  /* Affiche partenaire payante (option « affiche sur les articles ») */
+  const auj = aujourdhui();
+  sb.from('evenements').select('titre, affiche_url, lien').eq('statut','publie').eq('option_payante','affiche_articles').eq('paiement_statut','paye')
+    .lte('mise_en_avant_debut', auj).gte('mise_en_avant_fin', auj).limit(1).then(({data}) => {
+      const e = data && data[0]; const im = e && urlSure(e.affiche_url); if (!im) return;
+      const li = urlSure(e.lien);
+      document.getElementById('affiche').innerHTML = '<aside class="affiche-partenaire"><p>Rendez-vous partenaire</p>' +
+        (li ? '<a href="' + esc(li) + '" target="_blank" rel="noopener">' : '') + '<img src="' + esc(im) + '" alt="Affiche : ' + esc(e.titre) + '">' + (li ? '</a>' : '') + '</aside>';
+    });
+
+  /* À lire aussi, dans la même rubrique */
+  if (c.rubrique_id) {
+    sb.from('contenus').select(SELECT_CONTENU).eq('statut','publie').eq('rubrique_id', c.rubrique_id).neq('id', c.id).order('publie_le', {ascending:false}).limit(3)
+      .then(({data}) => { if (data && data.length) document.getElementById('a-lire').innerHTML = '<section class="section"><h2>À lire aussi</h2><div class="grille">' + data.map(carte).join('') + '</div></section>'; });
+  }
+}
+
+function compterLecture(id){
+  try {
+    const cle = 'bic-lu-' + id;
+    if (sessionStorage.getItem(cle)) return;
+    sessionStorage.setItem(cle, '1');
+  } catch(e) {}
+  sb.from('lectures').insert({ contenu_id: id }).then(() => {});
+}
+
+async function pageCreateur(id){
+  const [p, cs] = await Promise.all([
+    sb.from('createurs').select('id, nom, photo_url, bio, specialite, fondateur').eq('id', id).maybeSingle(),
+    sb.from('contenus').select(SELECT_CONTENU).eq('statut','publie').eq('createur_id', id).order('publie_le', {ascending:false}).limit(30)
+  ]);
+  if (p.error || !p.data) { pageIntrouvable(); return; }
+  const a = p.data; titrePage(a.nom);
+  const photo = urlSure(a.photo_url);
+  app.innerHTML = '<section class="page"><div class="auteur">' + (photo ? '<img src="' + esc(photo) + '" alt="">' : '<span class="avatar" aria-hidden="true"></span>') +
+    '<div><h1 style="margin:0">' + esc(a.nom) + (a.fondateur ? '<span class="badge-fondateur">Fondateur</span>' : '') + '</h1>' +
+    (a.specialite ? '<p class="meta" style="margin:.3rem 0 0">' + esc(a.specialite) + '</p>' : '') + '</div></div>' +
+    (a.bio ? '<div class="corps">' + paragraphes(a.bio) + '</div>' : '') + '</section>' +
+    ((cs.data && cs.data.length) ? '<section class="section"><h2>Ses contenus</h2><div class="grille">' + cs.data.map(carte).join('') + '</div></section>' : '');
+}
+
+async function pageAgenda(){
+  titrePage('Agenda culturel');
+  const { data, error } = await sb.from('evenements').select('*').eq('statut','publie').gte('date_debut', new Date().toISOString()).order('date_debut').limit(60);
+  if (error) { app.innerHTML = erreurMsg(); return; }
+  app.innerHTML = '<section class="page" style="max-width:none"><h1>Agenda culturel</h1>' +
+    '<p style="max-width:40rem">Festivals, concerts, expositions, cérémonies, conférences : tous les rendez-vous culturels du Bénin. L\'annonce dans l\'agenda est <strong>gratuite</strong> pour tout acteur culturel.</p>' +
+    '<p><a class="bouton" href="#/espace">Annoncer un événement</a></p>' +
+    (data.length ? '<ul class="agenda">' + data.map(ligneEvenement).join('') + '</ul>' : '<p class="vide-msg">Aucun rendez-vous annoncé pour l\'instant. Soyez le premier à annoncer le vôtre.</p>') + '</section>';
+}
+
+async function pageCommunautes(){
+  titrePage('Communautés linguistiques');
+  const { data, error } = await sb.from('langues').select('nom, autres_noms, slug').order('nom');
+  if (error) { app.innerHTML = erreurMsg(); return; }
+  app.innerHTML = '<section class="page" style="max-width:none"><h1>Communautés linguistiques</h1>' +
+    '<p style="max-width:42rem">Le Bénin compte une soixantaine de langues. Chacune a sa place sur BIC : chaque contenu et chaque événement peut être rattaché aux communautés qu\'il concerne.</p>' +
+    '<p style="max-width:42rem">Cette liste est en cours de validation avec les communautés elles-mêmes. Une langue manque, ou un nom est mal écrit ? <a href="mailto:contact@bicouidah.com?subject=Communautés linguistiques">Écrivez-nous</a>.</p>' +
+    '<div class="langues">' + data.map(l => '<a href="#/communaute/' + esc(l.slug) + '"><strong>' + esc(l.nom) + '</strong>' + (l.autres_noms ? '<span>' + esc(l.autres_noms) + '</span>' : '') + '</a>').join('') + '</div></section>';
+}
+
+async function pageCommunaute(slug){
+  const { data: l } = await sb.from('langues').select('id, nom, autres_noms').eq('slug', slug).maybeSingle();
+  if (!l) { pageIntrouvable(); return; }
+  titrePage(l.nom);
+  const [cs, es] = await Promise.all([
+    sb.from('contenus_langues').select('contenus(' + SELECT_CONTENU + ', statut)').eq('langue_id', l.id),
+    sb.from('evenements_langues').select('evenements(*)').eq('langue_id', l.id)
+  ]);
+  const contenus = (cs.data || []).map(x => x.contenus).filter(c => c && c.statut === 'publie').sort((a,b) => new Date(b.publie_le) - new Date(a.publie_le));
+  const maintenant = new Date();
+  const evts = (es.data || []).map(x => x.evenements).filter(e => e && e.statut === 'publie' && new Date(e.date_debut) >= maintenant).sort((a,b) => new Date(a.date_debut) - new Date(b.date_debut));
+  app.innerHTML = '<section class="page" style="max-width:none"><h1>' + esc(l.nom) + '</h1>' + (l.autres_noms ? '<p class="meta">Aussi appelée : ' + esc(l.autres_noms) + '</p>' : '') +
+    (evts.length ? '<h2>Prochains rendez-vous</h2><ul class="agenda">' + evts.map(ligneEvenement).join('') + '</ul>' : '') +
+    (contenus.length ? '<h2>Contenus</h2><div class="grille">' + contenus.map(carte).join('') + '</div>'
+      : '<p class="vide-msg">Aucun contenu rattaché à cette communauté pour l\'instant. Vous parlez cette langue ou vous en racontez la culture ? <a href="#/espace">Publiez sur BIC</a>.</p>') + '</section>';
+}
+
+function pageAPropos(){
+  titrePage('À propos');
+  const matieres = [
+    ['ocre', 'L\'ocre des tata', 'La terre des maisons-forteresses de l\'Atacora, au nord-ouest.'],
+    ['indigo', 'L\'indigo', 'Les pagnes teints du sud-est et des teintureries du nord.'],
+    ['rouge', 'Le rouge des tentures', 'Les tentures cousues d\'Abomey, qui racontent l\'histoire en images.'],
+    ['jaune', 'Le jaune des tentures', 'L\'autre couleur vive des tentures d\'Abomey.'],
+    ['vert', 'Le vert', 'La vallée de l\'Ouémé et les forêts sacrées.'],
+    ['lagune', 'Le bleu de la lagune', 'La lagune et l\'océan, de Ouidah à Grand-Popo.']
+  ];
+  app.innerHTML = '<section class="page"><img class="logo-grand" src="logo-bic.jpg" alt="Logo de Bénin Info Culture"><h1>À propos de BIC</h1>' +
+    '<p>Bénin Info Culture (BIC) est un média culturel né à Ouidah. Sur le web, à la radio et en vidéo, BIC raconte les arts, les patrimoines, les langues et les spiritualités du Bénin, avec celles et ceux qui les font vivre.</p>' +
+    '<p>BIC a été fondé par Doudédji Fatchina, journaliste culturel avec plus de dix-sept ans d\'expérience à la radio et à la télévision nationales, spécialisé dans la culture, le patrimoine et l\'environnement.</p>' +
+    '<p>La plateforme ouvre un espace aux journalistes et aux créateurs de contenu de tout le pays. Chaque publication est relue avant d\'être mise en ligne.</p>' +
+    '<h2>Nos couleurs</h2><p>Chaque rubrique porte une couleur tirée d\'une matière du Bénin, du nord au sud.</p>' +
+    '<ul class="matieres">' + matieres.map(m => '<li><span class="piece" style="--c:var(--' + m[0] + ')" aria-hidden="true"></span><div><strong>' + m[1] + '</strong><br>' + m[2] + '</div></li>').join('') + '</ul>' +
+    '<h2>Nous écrire</h2><p><a href="mailto:contact@bicouidah.com">contact@bicouidah.com</a></p></section>';
+}
+
+async function pagePartenaires(){
+  titrePage('Partenaires');
+  const { data } = await sb.from('partenaires').select('nom, logo_url, lien').order('created_at');
+  const liste = (data || []).map(p => {
+    const logo = urlSure(p.logo_url), lien = urlSure(p.lien);
+    const inner = (logo ? '<img src="' + esc(logo) + '" alt="">' : '') + esc(p.nom);
+    return lien ? '<a href="' + esc(lien) + '" target="_blank" rel="noopener">' + inner + '</a>' : '<a>' + inner + '</a>';
+  }).join('');
+  app.innerHTML = '<section class="page"><h1>Partenaires</h1>' +
+    (liste ? '<div class="partenaires">' + liste + '</div>' : '') +
+    '<h2>Devenir partenaire</h2>' +
+    '<p>L\'agenda culturel de BIC est <strong>gratuit</strong> pour tous les acteurs culturels. Pour donner plus de visibilité à votre événement, deux options sont proposées :</p>' +
+    '<ul><li><strong>La une</strong> : votre événement en ouverture de la page d\'accueil.</li><li><strong>L\'affiche sur les articles</strong> : votre affiche sur les contenus les plus lus.</li></ul>' +
+    '<p>Institutions, festivals, hôtels, agences : écrivez-nous pour connaître les tarifs.</p>' +
+    '<p><a class="bouton" href="mailto:contact@bicouidah.com?subject=Partenariat BIC">Écrire à BIC</a></p></section>';
+}
+
+function pageEspace(){
+  titrePage('Espace créateur');
+  app.innerHTML = '<section class="page"><h1>Espace créateur</h1>' +
+    '<p>L\'espace créateur ouvre très bientôt. Vous pourrez y créer votre profil, publier vos articles, vidéos et audios, et annoncer gratuitement vos événements dans l\'agenda.</p>' +
+    '<p>Pour être prévenu dès l\'ouverture, et peut-être compter parmi les vingt créateurs fondateurs, inscrivez-vous à la lettre de BIC ci-dessous ou écrivez-nous.</p>' +
+    '<p><a class="bouton" href="mailto:contact@bicouidah.com?subject=Je veux devenir créateur fondateur">Je veux devenir créateur</a></p></section>';
+}
+
+function pageIntrouvable(){
+  titrePage('Page introuvable');
+  app.innerHTML = '<section class="page"><h1>Cette page n\'existe pas</h1><p>Le lien est peut-être incomplet, ou le contenu a été retiré.</p><p><a class="bouton" href="#/">Revenir à l\'accueil</a></p></section>';
+}
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+async function chargerRubriques(){
+  const { data } = await sb.from('rubriques').select('id, nom, slug, description').order('ordre');
+  RUBRIQUES = data || [];
+  document.getElementById('bande-rubriques').innerHTML = RUBRIQUES.map(tag).join('');
+}
+
+async function router(){
+  const morceaux = (location.hash.replace(/^#\/?/, '') || '').split('/');
+  const [page, param] = [morceaux[0], decodeURIComponent(morceaux[1] || '')];
+  document.querySelectorAll('.nav-principale a').forEach(a => {
+    const cible = a.getAttribute('href').replace(/^#\/?/, '');
+    a.toggleAttribute('aria-current', cible === page);
+    if (cible === page) a.setAttribute('aria-current', 'page');
+  });
+  fermerMenu();
+  app.innerHTML = '<p class="chargement">Chargement…</p>';
+  try {
+    if (!page) await pageAccueil();
+    else if (page === 'rubrique') await pageRubrique(param);
+    else if (page === 'contenu') await pageContenu(param);
+    else if (page === 'createur') await pageCreateur(param);
+    else if (page === 'agenda') await pageAgenda();
+    else if (page === 'communautes') await pageCommunautes();
+    else if (page === 'communaute') await pageCommunaute(param);
+    else if (page === 'a-propos') pageAPropos();
+    else if (page === 'partenaires') await pagePartenaires();
+    else if (page === 'espace') pageEspace();
+    else pageIntrouvable();
+  } catch(e) {
+    console.error(e);
+    app.innerHTML = erreurMsg();
+  }
+  window.scrollTo(0, 0);
+}
+
+/* Menu sur téléphone */
+const boutonMenu = document.getElementById('bouton-menu');
+const nav = document.getElementById('nav');
+function fermerMenu(){ nav.classList.remove('ouverte'); boutonMenu.setAttribute('aria-expanded', 'false'); boutonMenu.textContent = 'Menu'; }
+boutonMenu.addEventListener('click', () => {
+  const ouvert = nav.classList.toggle('ouverte');
+  boutonMenu.setAttribute('aria-expanded', String(ouvert));
+  boutonMenu.textContent = ouvert ? 'Fermer' : 'Menu';
+});
+
+/* Lettre d'information */
+document.getElementById('form-lettre').addEventListener('submit', async e => {
+  e.preventDefault();
+  const champ = document.getElementById('email-lettre');
+  const retour = document.getElementById('retour-lettre');
+  const email = champ.value.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { retour.textContent = 'Cette adresse e-mail n\'est pas valide. Vérifiez-la et réessayez.'; return; }
+  retour.textContent = 'Inscription en cours…';
+  const { error } = await sb.from('abonnes').insert({ email });
+  if (!error) { retour.textContent = 'C\'est fait : vous recevrez la lettre de BIC.'; champ.value = ''; }
+  else if (error.code === '23505') { retour.textContent = 'Cette adresse est déjà inscrite.'; }
+  else { retour.textContent = 'L\'inscription a échoué. Vérifiez votre connexion et réessayez.'; }
+});
+
+window.addEventListener('hashchange', router);
+chargerRubriques().finally(router);
+</script>
+</body>
+</html>
