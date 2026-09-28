@@ -263,6 +263,26 @@ h3{font-size:1.2rem;font-weight:700}
 .statut-en_attente{background:var(--jaune);color:var(--encre-fixe)}
 .motif{margin:.4rem 0 0;font:500 .9rem var(--titre);color:var(--rouge)}
 
+/* ---------- Administration ---------- */
+.admin-nav,.admin-filtres{display:flex;flex-wrap:wrap;gap:.45rem;margin:1rem 0 1.4rem}
+.admin-nav a,.admin-filtres a{font:650 .92rem var(--titre);text-decoration:none;padding:.5rem .85rem;box-shadow:inset 0 0 0 1.5px var(--ligne)}
+.admin-nav a[aria-current],.admin-filtres a[aria-current]{background:var(--bouton-fond);color:var(--bouton-texte);box-shadow:none}
+.admin-filtres a{font-size:.85rem;padding:.4rem .7rem}
+.compteurs{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin:1rem 0}
+.compteur{display:block;text-decoration:none;padding:1.1rem;background:var(--surface);clip-path:polygon(0 2%,100% 0,98% 100%,1% 97%)}
+.compteur strong{display:block;font:800 2.2rem/1 var(--titre)}
+.compteur span{font:600 .9rem var(--titre);color:var(--encre-2)}
+.compteur.urgent{background:var(--jaune)}
+.compteur.urgent strong,.compteur.urgent span{color:var(--encre-fixe)}
+.carte-admin{padding:1.2rem 0;border-bottom:1px solid var(--ligne)}
+.carte-admin details{margin-top:.6rem}
+.carte-admin summary{cursor:pointer;font:650 .92rem var(--titre)}
+.boutons-admin{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+.petit-bouton{display:inline-block;font:650 .88rem var(--titre);padding:.5rem .85rem;border:1.5px solid var(--encre);background:none;color:var(--encre);cursor:pointer;text-decoration:none}
+.petit-bouton.ok{background:var(--vert);border-color:var(--vert);color:#fff}
+.petit-bouton.danger{border-color:var(--rouge);color:var(--rouge)}
+.apercu-admin{max-width:320px;margin:.6rem 0}
+
 /* ---------- Pied de page ---------- */
 .pied{border-top:1px solid var(--ligne);padding:2.4rem 0 3rem;font:500 .95rem var(--titre)}
 .pied-inner{display:flex;justify-content:space-between;gap:2rem;flex-wrap:wrap}
@@ -860,7 +880,7 @@ async function vueTableau(u, p){
     bandeau +
     '<div class="actions">' + (p.statut === 'valide' ? '<a class="bouton" href="#/espace/contenu/nouveau">Nouveau contenu</a>' : '') +
     '<a class="bouton secondaire" href="#/espace/evenement/nouveau">Annoncer un événement</a>' +
-    '<a class="bouton secondaire" href="#/espace/profil">Mon profil</a></div>' +
+    '<a class="bouton secondaire" href="#/espace/profil">Mon profil</a>' + (p.est_admin ? '<a class="bouton" href="#/admin">Administration</a>' : '') + '</div>' +
     '<h2>Mes contenus</h2>' + (contenus.length ? '<ul class="liste-perso">' + contenus.map(c =>
       '<li><div><a href="#/espace/contenu/' + c.id + '"><strong>' + esc(c.titre) + '</strong></a><br>' + puceStatut(c.statut) +
       (c.statut === 'publie' ? ' <a class="meta" href="#/contenu/' + c.id + '">Voir en ligne</a>' : '') +
@@ -1067,6 +1087,268 @@ async function vueEvenement(u, p, id){
   });
 }
 
+/* =========================================================
+   ESPACE ADMINISTRATEUR
+   ========================================================= */
+const SECTIONS_ADMIN = [['', 'Tableau'], ['createurs', 'Créateurs'], ['contenus', 'Contenus'], ['evenements', 'Événements'], ['partenaires', 'Partenaires'], ['abonnes', 'Abonnés'], ['langues', 'Langues']];
+function slugifier(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+async function copier(texte, bouton){ try { await navigator.clipboard.writeText(texte); bouton.textContent = 'Copié ✓'; } catch(e) { bouton.textContent = 'Copie impossible'; } setTimeout(() => { bouton.textContent = 'Copier'; }, 2000); }
+function brancherCopie(){ document.querySelectorAll('[data-copier]').forEach(b => b.addEventListener('click', () => copier(document.getElementById(b.dataset.copier).value, b))); }
+
+async function pageAdmin(section, id){
+  titrePage('Administration');
+  const u = await utilisateur();
+  if (!u) { location.hash = '#/espace'; return; }
+  const { data: p } = await sb.from('createurs').select('est_admin, nom').eq('id', u.id).maybeSingle();
+  if (!p || !p.est_admin) { app.innerHTML = '<section class="page"><h1>Accès réservé</h1><p>Cette partie du site est réservée à l\'administration de BIC.</p><p><a class="bouton" href="#/espace">Mon espace</a></p></section>'; return; }
+  const nav = '<nav class="admin-nav" aria-label="Administration">' + SECTIONS_ADMIN.map(s =>
+    '<a href="#/admin' + (s[0] ? '/' + s[0] : '') + '"' + ((section || '') === s[0] ? ' aria-current="page"' : '') + '>' + s[1] + '</a>').join('') + '</nav>';
+  app.innerHTML = '<section class="page" style="max-width:none"><p><a href="#/espace">← Mon espace</a></p><h1>Administration</h1>' + nav + '<div id="admin-contenu"><p class="chargement">Chargement…</p></div></section>';
+  const zone = document.getElementById('admin-contenu');
+  const vues = { '': adminTableau, createurs: adminCreateurs, contenus: adminContenus, evenements: adminEvenements, partenaires: adminPartenaires, abonnes: adminAbonnes, langues: adminLangues };
+  await (vues[section || ''] || adminTableau)(zone, u, id);
+}
+
+async function compter(table, filtre){ let q = sb.from(table).select('*', { count:'exact', head:true }); if (filtre) q = filtre(q); const { count } = await q; return count || 0; }
+
+async function adminTableau(zone){
+  const [cr, co, ev, pay, ab, pub] = await Promise.all([
+    compter('createurs', q => q.eq('statut','en_attente')),
+    compter('contenus', q => q.eq('statut','en_attente')),
+    compter('evenements', q => q.eq('statut','en_attente')),
+    compter('evenements', q => q.neq('option_payante','aucune').neq('paiement_statut','paye').neq('statut','refuse')),
+    compter('abonnes'),
+    compter('contenus', q => q.eq('statut','publie'))
+  ]);
+  const carte = (n, t, lien, urgent) => '<a class="compteur' + (urgent && n ? ' urgent' : '') + '" href="' + lien + '"><strong>' + n + '</strong><span>' + t + '</span></a>';
+  zone.innerHTML = '<div class="compteurs">' +
+    carte(cr, 'créateur(s) à valider', '#/admin/createurs', true) +
+    carte(co, 'contenu(s) à relire', '#/admin/contenus', true) +
+    carte(ev, 'événement(s) à vérifier', '#/admin/evenements', true) +
+    carte(pay, 'option(s) payante(s) à traiter', '#/admin/evenements', true) +
+    carte(pub, 'contenu(s) publié(s)', '#/admin/contenus/publie') +
+    carte(ab, 'abonné(s) à la lettre', '#/admin/abonnes') + '</div>' +
+    '<p class="aide">Les chiffres en couleur signalent ce qui attend ta décision.</p>';
+}
+
+/* ----- Créateurs ----- */
+async function adminCreateurs(zone, u){
+  const { data, error } = await sb.from('createurs').select('*').order('created_at', { ascending:false });
+  if (error) { zone.innerHTML = erreurMsg(); return; }
+  const ordre = { en_attente:0, valide:1, suspendu:2 };
+  const liste = (data || []).sort((a, b) => ordre[a.statut] - ordre[b.statut]);
+  const nbFond = liste.filter(c => c.fondateur).length;
+  const noms = { en_attente:'En attente', valide:'Validé', suspendu:'Suspendu' };
+  zone.innerHTML = '<p class="message" id="msg-admin" role="status" hidden></p><p class="aide">Badges « Créateur fondateur » attribués : <strong>' + nbFond + ' sur 20</strong>.</p>' +
+    (liste.length ? liste.map(c => {
+      const photo = urlSure(c.photo_url);
+      return '<div class="carte-admin"><div class="auteur">' + (photo ? '<img src="' + esc(photo) + '" alt="">' : '<span class="avatar" aria-hidden="true"></span>') +
+        '<div><strong>' + esc(c.nom || '(sans nom)') + '</strong>' + (c.fondateur ? '<span class="badge-fondateur">Fondateur</span>' : '') + (c.est_admin ? ' <span class="meta">(administrateur)</span>' : '') +
+        '<br><span class="statut statut-' + (c.statut === 'valide' ? 'publie' : c.statut === 'suspendu' ? 'refuse' : 'en_attente') + '">' + noms[c.statut] + '</span>' +
+        (c.specialite ? '<br><span class="meta">' + esc(c.specialite) + '</span>' : '') + '<br><span class="meta">Inscrit le ' + fmtDate(c.created_at) + '</span></div></div>' +
+        (c.bio ? '<details><summary>Lire la biographie</summary><div class="corps">' + paragraphes(c.bio) + '</div></details>' : '<p class="aide">Profil pas encore complété (pas de biographie).</p>') +
+        (c.id === u.id ? '' : '<div class="boutons-admin">' +
+          (c.statut !== 'valide' ? '<button class="petit-bouton ok" data-cr="' + c.id + '" data-act="valide">Valider</button>' : '') +
+          (c.statut !== 'suspendu' ? '<button class="petit-bouton danger" data-cr="' + c.id + '" data-act="suspendu">Suspendre</button>' : '') +
+          (c.statut !== 'en_attente' ? '<button class="petit-bouton" data-cr="' + c.id + '" data-act="en_attente">Remettre en attente</button>' : '') +
+          '<button class="petit-bouton" data-cr="' + c.id + '" data-act="fondateur" data-val="' + (!c.fondateur) + '">' + (c.fondateur ? 'Retirer le badge fondateur' : 'Donner le badge fondateur') + '</button></div>') +
+        '</div>';
+    }).join('') : '<p class="vide-msg">Aucun créateur inscrit pour l\'instant.</p>');
+  zone.querySelectorAll('[data-cr]').forEach(b => b.addEventListener('click', async () => {
+    const maj = b.dataset.act === 'fondateur' ? { fondateur: b.dataset.val === 'true' } : { statut: b.dataset.act };
+    if (maj.fondateur && nbFond >= 20 && !confirm('Les 20 badges fondateurs sont déjà attribués. En donner un de plus quand même ?')) return;
+    const { error } = await sb.from('createurs').update(maj).eq('id', b.dataset.cr);
+    if (error) return message('msg-admin', traduireErreur(error), 'erreur');
+    adminCreateurs(zone, u);
+  }));
+}
+
+/* ----- Contenus ----- */
+function kitTextes(c){
+  const url = SITE + '#/contenu/' + c.id;
+  const rub = c.rubriques ? c.rubriques.nom : 'Culture';
+  const tag = '#' + rub.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]/g, '');
+  const res = c.resume || '';
+  return {
+    whatsapp: '📰 *' + c.titre + '*\n\n' + res + '\n\nÀ lire sur BIC 👉 ' + url,
+    facebook: c.titre + '\n\n' + res + '\n\nL\'article complet sur Bénin Info Culture : ' + url + '\n\n#BIC #Benin #Culture ' + tag,
+    tiktok: 'ACCROCHE (3 secondes) : ' + c.titre + '\n\nCŒUR (20 secondes) : ' + (res || 'Racontez l\'essentiel en deux phrases.') + '\n\nFIN (5 secondes) : Toute l\'histoire sur bicouidah.com. Lien dans la bio.'
+  };
+}
+async function adminContenus(zone, u, filtre){
+  filtre = filtre || 'en_attente';
+  const { data, error } = await sb.from('contenus').select('id, titre, resume, corps, type, image_url, media_url, statut, motif_refus, publie_le, updated_at, createurs(nom), rubriques(nom, slug)')
+    .eq('statut', filtre).order('updated_at', { ascending:false }).limit(50);
+  if (error) { zone.innerHTML = erreurMsg(); return; }
+  const onglets = [['en_attente','À relire'], ['publie','Publiés'], ['refuse','Refusés'], ['brouillon','Brouillons']];
+  zone.innerHTML = '<div class="admin-filtres">' + onglets.map(o => '<a href="#/admin/contenus/' + o[0] + '"' + (o[0] === filtre ? ' aria-current="page"' : '') + '>' + o[1] + '</a>').join('') + '</div>' +
+    '<p class="message" id="msg-admin" role="status" hidden></p>' +
+    (data.length ? data.map(c => {
+      const img = urlSure(c.image_url), media = urlSure(c.media_url);
+      let bloc = '<div class="carte-admin">' + tag(c.rubriques) + '<h3 style="margin:.4rem 0">' + esc(c.titre) + '</h3>' +
+        '<p class="meta">Par ' + esc(c.createurs ? c.createurs.nom : '?') + ', ' + (TYPES[c.type] || 'Article') + ', modifié le ' + fmtDate(c.updated_at) + '</p>' +
+        (c.motif_refus && c.statut === 'refuse' ? '<p class="motif">Motif : ' + esc(c.motif_refus) + '</p>' : '') +
+        '<details><summary>Lire le contenu</summary>' + (img ? '<img class="apercu-admin" src="' + esc(img) + '" alt="">' : '') +
+        (c.resume ? '<p class="chapo">' + esc(c.resume) + '</p>' : '') + '<div class="corps">' + paragraphes(c.corps) + '</div>' +
+        (media ? '<p><a href="' + esc(media) + '" target="_blank" rel="noopener">Ouvrir la vidéo ou l\'audio</a></p>' : '') + '</details>' +
+        '<div class="boutons-admin">';
+      if (c.statut !== 'publie') bloc += '<button class="petit-bouton ok" data-co="' + c.id + '" data-act="publier">Publier</button>';
+      if (c.statut !== 'refuse' && c.statut !== 'brouillon') bloc += '<button class="petit-bouton danger" data-co="' + c.id + '" data-act="refuser">Refuser</button>';
+      if (c.statut === 'publie') bloc += '<a class="petit-bouton" href="#/contenu/' + c.id + '">Voir en ligne</a><button class="petit-bouton" data-co="' + c.id + '" data-act="retirer">Retirer du site</button>';
+      bloc += '</div>';
+      if (c.statut === 'publie') {
+        const k = kitTextes(c);
+        bloc += '<details><summary>Kit de diffusion</summary><p class="aide">Textes prêts à copier. Relis-les avant de publier sur les réseaux.</p>' +
+          [['whatsapp','WhatsApp'], ['facebook','Facebook'], ['tiktok','Script TikTok']].map(x =>
+            '<div class="champ"><label for="kit-' + x[0] + '-' + c.id + '">' + x[1] + '</label><textarea id="kit-' + x[0] + '-' + c.id + '" rows="5">' + esc(k[x[0]]) + '</textarea>' +
+            '<button type="button" class="petit-bouton" data-copier="kit-' + x[0] + '-' + c.id + '">Copier</button></div>').join('') + '</details>';
+      }
+      return bloc + '</div>';
+    }).join('') : '<p class="vide-msg">Rien dans cette catégorie pour l\'instant.</p>');
+  brancherCopie();
+  zone.querySelectorAll('[data-co]').forEach(b => b.addEventListener('click', async () => {
+    const c = data.find(x => x.id === b.dataset.co); let maj;
+    if (b.dataset.act === 'publier') maj = { statut:'publie', motif_refus:null, publie_le: c.publie_le || new Date().toISOString() };
+    else if (b.dataset.act === 'retirer') { if (!confirm('Retirer ce contenu du site ? Il repassera « à relire ».')) return; maj = { statut:'en_attente' }; }
+    else { const motif = prompt('Motif du refus (le créateur le verra) :'); if (motif === null) return; maj = { statut:'refuse', motif_refus: motif.trim() || 'Contenu non retenu.' }; }
+    const { error } = await sb.from('contenus').update(maj).eq('id', c.id);
+    if (error) return message('msg-admin', traduireErreur(error), 'erreur');
+    adminContenus(zone, u, filtre);
+  }));
+}
+
+/* ----- Événements ----- */
+async function adminEvenements(zone, u, filtre){
+  filtre = filtre || 'en_attente';
+  let q = sb.from('evenements').select('*').order('date_debut', { ascending: filtre !== 'passes' }).limit(60);
+  if (filtre === 'payants') q = q.neq('option_payante','aucune').neq('statut','refuse');
+  else if (filtre === 'passes') q = q.lt('date_debut', new Date().toISOString());
+  else q = q.eq('statut', filtre);
+  const { data, error } = await q;
+  if (error) { zone.innerHTML = erreurMsg(); return; }
+  const onglets = [['en_attente','À vérifier'], ['payants','Options payantes'], ['publie','Publiés'], ['refuse','Refusés'], ['passes','Passés']];
+  const optNom = { une:'La une', affiche_articles:'Affiche sur les articles' };
+  zone.innerHTML = '<div class="admin-filtres">' + onglets.map(o => '<a href="#/admin/evenements/' + o[0] + '"' + (o[0] === filtre ? ' aria-current="page"' : '') + '>' + o[1] + '</a>').join('') + '</div>' +
+    '<p class="message" id="msg-admin" role="status" hidden></p>' +
+    (data.length ? data.map(e => {
+      const aff = urlSure(e.affiche_url);
+      let b = '<div class="carte-admin"><h3 style="margin:0 0 .3rem">' + esc(e.titre) + '</h3><p class="meta">' + fmtHeure(e.date_debut) + ([e.lieu, e.ville].filter(Boolean).length ? ', ' + [e.lieu, e.ville].filter(Boolean).map(esc).join(', ') : '') + '</p>' +
+        puceStatut(e.statut) + (e.option_payante !== 'aucune' ? ' <span class="statut statut-en_attente">' + optNom[e.option_payante] + ' : ' + (e.paiement_statut === 'paye' ? 'payée' : 'à traiter') + '</span>' : '') +
+        '<details><summary>Détails</summary>' + (aff ? '<img class="apercu-admin" src="' + esc(aff) + '" alt="">' : '') + (e.description ? '<div class="corps">' + paragraphes(e.description) + '</div>' : '') +
+        '<p class="meta">Contact : ' + [e.contact_nom, e.contact_tel, e.contact_email].filter(Boolean).map(esc).join(', ') + '</p></details><div class="boutons-admin">';
+      if (e.statut !== 'publie') b += '<button class="petit-bouton ok" data-ev="' + e.id + '" data-act="publier">Publier</button>';
+      if (e.statut === 'en_attente') b += '<button class="petit-bouton danger" data-ev="' + e.id + '" data-act="refuser">Refuser</button>';
+      if (e.statut === 'publie') b += '<button class="petit-bouton" data-ev="' + e.id + '" data-act="annuler">Marquer annulé</button>';
+      b += '</div>';
+      if (e.option_payante !== 'aucune') {
+        b += '<details' + (e.paiement_statut !== 'paye' ? ' open' : '') + '><summary>Option payante : ' + optNom[e.option_payante] + '</summary><div class="form" style="margin-top:.6rem">' +
+          '<div class="deux-colonnes"><div class="champ"><label for="mt-' + e.id + '">Montant (FCFA)</label><input type="text" inputmode="numeric" id="mt-' + e.id + '" value="' + (e.montant_fcfa ?? '') + '"></div>' +
+          '<div class="champ"><label for="ps-' + e.id + '">Paiement</label><select id="ps-' + e.id + '"><option value="en_attente"' + (e.paiement_statut !== 'paye' ? ' selected' : '') + '>En attente</option><option value="paye"' + (e.paiement_statut === 'paye' ? ' selected' : '') + '>Payé</option></select></div></div>' +
+          '<div class="deux-colonnes"><div class="champ"><label for="md-' + e.id + '">Mise en avant : début</label><input type="date" id="md-' + e.id + '" value="' + (e.mise_en_avant_debut || '') + '"></div>' +
+          '<div class="champ"><label for="mf-' + e.id + '">Mise en avant : fin</label><input type="date" id="mf-' + e.id + '" value="' + (e.mise_en_avant_fin || '') + '"></div></div>' +
+          '<p class="aide">L\'option s\'affiche sur le site seulement si l\'événement est publié, le paiement « Payé » et la date du jour comprise entre le début et la fin.</p>' +
+          '<div><button class="petit-bouton ok" data-pay="' + e.id + '">Enregistrer l\'option</button></div></div></details>';
+      }
+      return b + '</div>';
+    }).join('') : '<p class="vide-msg">Rien dans cette catégorie pour l\'instant.</p>');
+  zone.querySelectorAll('[data-ev]').forEach(b => b.addEventListener('click', async () => {
+    let maj;
+    if (b.dataset.act === 'publier') maj = { statut:'publie', motif_refus:null, publie_le: new Date().toISOString() };
+    else if (b.dataset.act === 'annuler') { if (!confirm('Marquer cet événement comme annulé ?')) return; maj = { statut:'annule' }; }
+    else { const motif = prompt('Motif du refus (l\'organisateur le verra) :'); if (motif === null) return; maj = { statut:'refuse', motif_refus: motif.trim() || 'Annonce non retenue.' }; }
+    const { error } = await sb.from('evenements').update(maj).eq('id', b.dataset.ev);
+    if (error) return message('msg-admin', traduireErreur(error), 'erreur');
+    adminEvenements(zone, u, filtre);
+  }));
+  zone.querySelectorAll('[data-pay]').forEach(b => b.addEventListener('click', async () => {
+    const i = b.dataset.pay, mt = val('mt-' + i).replace(/\s/g, ''), d = val('md-' + i), f = val('mf-' + i);
+    if (mt && !/^\d+$/.test(mt)) return message('msg-admin', 'Le montant doit être un nombre, sans lettres.', 'erreur');
+    if (d && f && f < d) return message('msg-admin', 'La fin de la mise en avant ne peut pas être avant le début.', 'erreur');
+    const { error } = await sb.from('evenements').update({ montant_fcfa: mt ? Number(mt) : null, paiement_statut: val('ps-' + i), mise_en_avant_debut: d || null, mise_en_avant_fin: f || null }).eq('id', i);
+    if (error) return message('msg-admin', traduireErreur(error), 'erreur');
+    message('msg-admin', 'Option payante enregistrée.', 'ok');
+  }));
+}
+
+/* ----- Partenaires ----- */
+async function adminPartenaires(zone, u){
+  const { data, error } = await sb.from('partenaires').select('*').order('created_at', { ascending:false });
+  if (error) { zone.innerHTML = erreurMsg(); return; }
+  zone.innerHTML = '<p class="message" id="msg-admin" role="status" hidden></p>' +
+    (data.length ? data.map(p => '<div class="carte-admin"><strong>' + esc(p.nom) + '</strong> ' + (p.actif ? '<span class="statut statut-publie">Visible</span>' : '<span class="statut">Masqué</span>') +
+      (urlSure(p.lien) ? '<br><a class="meta" href="' + esc(urlSure(p.lien)) + '" target="_blank" rel="noopener">' + esc(p.lien) + '</a>' : '') +
+      '<div class="boutons-admin"><button class="petit-bouton" data-pa="' + p.id + '" data-act="basculer" data-val="' + (!p.actif) + '">' + (p.actif ? 'Masquer' : 'Afficher') + '</button>' +
+      '<button class="petit-bouton danger" data-pa="' + p.id + '" data-act="suppr">Supprimer</button></div></div>').join('') : '<p class="vide-msg">Aucun partenaire pour l\'instant.</p>') +
+    '<h2>Ajouter un partenaire</h2><form class="form" id="form-part" novalidate>' +
+    '<div class="champ"><label for="pa-nom">Nom</label><input type="text" id="pa-nom" required></div>' +
+    '<div class="champ"><label for="pa-lien">Site ou page (facultatif)</label><input type="url" id="pa-lien" placeholder="https://…"></div>' +
+    champImage('pa-logo', '', 'Logo') +
+    '<div class="deux-colonnes"><div class="champ"><label for="pa-deb">Début (facultatif)</label><input type="date" id="pa-deb"></div><div class="champ"><label for="pa-fin">Fin (facultatif)</label><input type="date" id="pa-fin"></div></div>' +
+    '<div><button class="bouton" type="submit">Ajouter</button></div></form>';
+  brancherApercu('pa-logo');
+  zone.querySelectorAll('[data-pa]').forEach(b => b.addEventListener('click', async () => {
+    if (b.dataset.act === 'suppr' && !confirm('Supprimer ce partenaire ?')) return;
+    const r = b.dataset.act === 'suppr' ? await sb.from('partenaires').delete().eq('id', b.dataset.pa) : await sb.from('partenaires').update({ actif: b.dataset.val === 'true' }).eq('id', b.dataset.pa);
+    if (r.error) return message('msg-admin', traduireErreur(r.error), 'erreur');
+    adminPartenaires(zone, u);
+  }));
+  document.getElementById('form-part').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const nom = val('pa-nom'), lien = val('pa-lien');
+    if (!nom) return message('msg-admin', 'Le nom est obligatoire.', 'erreur');
+    if (lien && !urlSure(lien)) return message('msg-admin', 'Le lien doit commencer par https://', 'erreur');
+    message('msg-admin', 'Ajout en cours…');
+    try {
+      const d = { nom, lien: lien || null, date_debut: val('pa-deb') || null, date_fin: val('pa-fin') || null, actif: true };
+      const f = document.getElementById('pa-logo').files[0]; if (f) d.logo_url = await envoyerImage(f, u.id);
+      const { error } = await sb.from('partenaires').insert(d); if (error) throw error;
+      adminPartenaires(zone, u);
+    } catch (err) { message('msg-admin', traduireErreur(err), 'erreur'); }
+  });
+}
+
+/* ----- Abonnés ----- */
+async function adminAbonnes(zone){
+  const { data, error } = await sb.from('abonnes').select('email, created_at').order('created_at', { ascending:false });
+  if (error) { zone.innerHTML = erreurMsg(); return; }
+  zone.innerHTML = '<p><strong>' + data.length + '</strong> abonné(s) à la lettre de BIC.</p>' +
+    (data.length ? '<div class="champ"><label for="liste-abonnes">Toutes les adresses (à coller dans le champ « Cci » d\'un e-mail)</label><textarea id="liste-abonnes" rows="5" readonly>' + esc(data.map(a => a.email).join(', ')) + '</textarea>' +
+      '<button type="button" class="petit-bouton" data-copier="liste-abonnes">Copier</button></div>' +
+      '<ul class="liste-perso">' + data.map(a => '<li>' + esc(a.email) + ' <span class="meta">, inscrit le ' + fmtDate(a.created_at) + '</span></li>').join('') + '</ul>'
+      : '<p class="vide-msg">Aucun abonné pour l\'instant.</p>');
+  brancherCopie();
+}
+
+/* ----- Langues ----- */
+async function adminLangues(zone, u){
+  const { data, error } = await sb.from('langues').select('*').order('nom');
+  if (error) { zone.innerHTML = erreurMsg(); return; }
+  const nbVal = data.filter(l => l.statut === 'valide').length;
+  zone.innerHTML = '<p class="message" id="msg-admin" role="status" hidden></p><p>' + nbVal + ' langue(s) validée(s) sur ' + data.length + '. Valide chaque langue après vérification avec la communauté.</p>' +
+    '<ul class="liste-perso">' + data.map(l => '<li><strong>' + esc(l.nom) + '</strong>' + (l.autres_noms ? ' <span class="meta">(' + esc(l.autres_noms) + ')</span>' : '') + ' ' +
+      (l.statut === 'valide' ? '<span class="statut statut-publie">Validée</span>' : '<span class="statut statut-en_attente">À valider</span>') +
+      '<div class="boutons-admin"><button class="petit-bouton" data-la="' + l.id + '" data-val="' + (l.statut === 'valide' ? 'a_valider' : 'valide') + '">' + (l.statut === 'valide' ? 'Remettre à valider' : 'Valider') + '</button>' +
+      '<button class="petit-bouton danger" data-la="' + l.id + '" data-act="suppr">Supprimer</button></div></li>').join('') + '</ul>' +
+    '<h2>Ajouter une langue</h2><form class="form" id="form-langue" novalidate>' +
+    '<div class="champ"><label for="la-nom">Nom</label><input type="text" id="la-nom" required></div>' +
+    '<div class="champ"><label for="la-autres">Autres noms (facultatif)</label><input type="text" id="la-autres" placeholder="Séparés par des virgules"></div>' +
+    '<div><button class="bouton" type="submit">Ajouter</button></div></form>';
+  zone.querySelectorAll('[data-la]').forEach(b => b.addEventListener('click', async () => {
+    let r;
+    if (b.dataset.act === 'suppr') { if (!confirm('Supprimer cette langue ? Ses liens avec les contenus et événements seront retirés.')) return; r = await sb.from('langues').delete().eq('id', b.dataset.la); }
+    else r = await sb.from('langues').update({ statut: b.dataset.val }).eq('id', b.dataset.la);
+    if (r.error) return message('msg-admin', traduireErreur(r.error), 'erreur');
+    LANGUES = null; adminLangues(zone, u);
+  }));
+  document.getElementById('form-langue').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const nom = val('la-nom'); if (!nom) return message('msg-admin', 'Le nom est obligatoire.', 'erreur');
+    const { error } = await sb.from('langues').insert({ nom, autres_noms: val('la-autres') || null, slug: slugifier(nom), statut: 'valide' });
+    if (error) return message('msg-admin', /duplicate|unique/i.test(error.message) ? 'Cette langue existe déjà.' : traduireErreur(error), 'erreur');
+    LANGUES = null; adminLangues(zone, u);
+  });
+}
+
 function pageIntrouvable(){
   titrePage('Page introuvable');
   app.innerHTML = '<section class="page"><h1>Cette page n\'existe pas</h1><p>Le lien est peut-être incomplet, ou le contenu a été retiré.</p><p><a class="bouton" href="#/">Revenir à l\'accueil</a></p></section>';
@@ -1102,6 +1384,7 @@ async function router(){
     else if (page === 'a-propos') pageAPropos();
     else if (page === 'partenaires') await pagePartenaires();
     else if (page === 'espace') await pageEspace(param, param2);
+    else if (page === 'admin') await pageAdmin(param, param2);
     else pageIntrouvable();
   } catch(e) {
     console.error(e);
