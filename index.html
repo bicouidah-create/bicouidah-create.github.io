@@ -630,8 +630,11 @@ function pageAPropos(){
   ];
   app.innerHTML = '<section class="page"><img class="logo-grand" src="logo-bic.png" alt="Logo de Bénin Info Culture"><h1>À propos de BIC</h1>' +
     '<p>Bénin Info Culture (BIC) est un média culturel né à Ouidah. Sur le web, à la radio et en vidéo, BIC raconte les arts, les patrimoines, les langues et les spiritualités du Bénin, avec celles et ceux qui les font vivre.</p>' +
-    '<p>BIC a été fondé par Doudédji Fatchina, journaliste culturel avec plus de dix-sept ans d\'expérience à la radio et à la télévision nationales, spécialisé dans la culture, le patrimoine et l\'environnement.</p>' +
+    '<p>BIC a été fondé par Doudédji Fatchina, journaliste culturel avec plus de dix-sept ans d\'expérience à la radio et à la télévision nationales, spécialisé dans la culture, le patrimoine et l\'environnement. <a href="#/createur/ac59f811-6616-4328-9b85-4028a5f2226f">Lire sa présentation</a>.</p>' +
     '<p>La plateforme ouvre un espace aux journalistes et aux créateurs de contenu de tout le pays. Chaque publication est relue avant d\'être mise en ligne.</p>' +
+    '<h2>Nos langues</h2>' +
+    '<p>BIC démarre en français, pour être lu partout au Bénin et au-delà. Mais la culture béninoise vit d\'abord dans ses langues : des versions en langues nationales viendront progressivement, avec les communautés elles-mêmes. Dès aujourd\'hui, les créateurs peuvent publier dans la langue de leur choix.</p>' +
+    '<p><a href="#/communautes">Voir les communautés linguistiques</a></p>' +
     '<h2>Nos couleurs</h2><p>Chaque rubrique porte une couleur tirée d\'une matière du Bénin, du nord au sud.</p>' +
     '<ul class="matieres">' + matieres.map(m => '<li><span class="piece" style="--c:var(--' + m[0] + ')" aria-hidden="true"></span><div><strong>' + m[1] + '</strong><br>' + m[2] + photo(m[0], 900) + '</div></li>').join('') + '</ul>' +
     '<h2>Nous écrire</h2><p><a href="mailto:contact@bicouidah.com">contact@bicouidah.com</a></p></section>';
