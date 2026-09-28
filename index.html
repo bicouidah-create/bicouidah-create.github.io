@@ -9,7 +9,9 @@
 <meta property="og:description" content="La culture du Bénin, racontée par celles et ceux qui la vivent.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://bicouidah.com/">
-<meta name="theme-color" content="#1C1A4A">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14132B" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/png" href="icone-bic.png">
 <link rel="apple-touch-icon" href="icone-bic.png">
 <meta property="og:image" content="https://bicouidah.com/logo-bic.png">
@@ -24,6 +26,21 @@
   --titre:'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --texte:'Literata', Georgia, 'Times New Roman', serif;
   --large:1180px;
+  --encre-fixe:#1C1A4A; --bouton-fond:#1C1A4A; --bouton-texte:#FFFFFF; --bouton-survol:#2E3A8C;
+  --lettre-fond:#1C1A4A; --lettre-texte:#D8D6EA;
+  color-scheme:light;
+}
+/* ---------- Mode sombre : la nuit indigo ---------- */
+@media (prefers-color-scheme:dark){
+  :root{
+    --encre:#ECEAF6; --encre-2:#B7B4CF; --fond:#14132B; --surface:#1F1E3D; --ligne:#34325A;
+    --ocre:#C97A3D; --indigo:#5B6BD6; --rouge:#D9453A; --jaune:#E3A712; --vert:#3E9150; --lagune:#2A95B8;
+    --bouton-fond:#ECEAF6; --bouton-texte:#14132B; --bouton-survol:#FFFFFF;
+    --lettre-fond:#232152; --lettre-texte:#C9C6E4;
+    color-scheme:dark;
+  }
+  .lettre{border-top:1px solid var(--ligne)}
+  .une-image img,.item-image img,.article-image{filter:brightness(.92)}
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -94,8 +111,8 @@ h3{font-size:1.2rem;font-weight:700}
 }
 
 /* ---------- Boutons ---------- */
-.bouton{display:inline-block;background:var(--encre);color:#fff;font:650 1rem var(--titre);padding:.8rem 1.3rem;text-decoration:none;border:none;cursor:pointer;clip-path:polygon(0 4%,100% 0,98% 100%,2% 96%)}
-.bouton:hover{background:var(--indigo)}
+.bouton{display:inline-block;background:var(--bouton-fond);color:var(--bouton-texte);font:650 1rem var(--titre);padding:.8rem 1.3rem;text-decoration:none;border:none;cursor:pointer;clip-path:polygon(0 4%,100% 0,98% 100%,2% 96%)}
+.bouton:hover{background:var(--bouton-survol)}
 .bouton.secondaire{background:none;color:var(--encre);box-shadow:inset 0 0 0 2px var(--encre);clip-path:none}
 .bouton.secondaire:hover{background:var(--surface)}
 
@@ -150,7 +167,7 @@ h3{font-size:1.2rem;font-weight:700}
 .affiche-partenaire p{margin:0 0 .6rem;font:600 .82rem var(--titre);color:var(--encre-2)}
 .auteur{display:flex;gap:.9rem;align-items:center;margin:1rem 0}
 .auteur img,.auteur .avatar{width:48px;height:48px;object-fit:cover;background:var(--surface);clip-path:polygon(8% 0,100% 8%,92% 100%,0 92%)}
-.badge-fondateur{font:650 .74rem var(--titre);background:var(--jaune);color:var(--encre);padding:.12rem .45rem;margin-left:.4rem}
+.badge-fondateur{font:650 .74rem var(--titre);background:var(--jaune);color:var(--encre-fixe);padding:.12rem .45rem;margin-left:.4rem}
 
 /* ---------- En-tête de rubrique ---------- */
 .tete-rubrique{padding:2.4rem 0 1.6rem}
@@ -176,13 +193,13 @@ h3{font-size:1.2rem;font-weight:700}
 .partenaires img{height:90px;width:100%;object-fit:contain;margin-bottom:.5rem}
 
 /* ---------- Lettre d'information ---------- */
-.lettre{background:var(--encre);color:#fff;padding:2.6rem 0;margin-top:1rem}
+.lettre{background:var(--lettre-fond);color:#fff;padding:2.6rem 0;margin-top:1rem}
 .lettre-inner{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center}
 .lettre h2{margin-bottom:.5rem}
-.lettre p{margin:0;color:#D8D6EA}
+.lettre p{margin:0;color:var(--lettre-texte)}
 .lettre form{display:flex;gap:.6rem;flex-wrap:wrap}
-.lettre input{flex:1 1 220px;font:400 1rem var(--titre);padding:.8rem .9rem;border:none;min-width:0}
-.lettre .bouton{background:var(--jaune);color:var(--encre)}
+.lettre input{flex:1 1 220px;font:400 1rem var(--titre);padding:.8rem .9rem;border:none;min-width:0;background:#FFFFFF;color:#1C1A4A}
+.lettre .bouton{background:var(--jaune);color:var(--encre-fixe)}
 .lettre .bouton:hover{background:#F0B41A}
 .lettre .retour{flex-basis:100%;margin-top:.4rem;font:500 .92rem var(--titre);color:#fff;min-height:1.3em}
 @media (max-width:760px){.lettre-inner{grid-template-columns:1fr}}
@@ -281,7 +298,7 @@ const COULEURS = {
 };
 function couleur(slug){
   const v = COULEURS[slug] || 'ocre';
-  return { fond:'var(--' + v + ')', texte: v === 'jaune' ? 'var(--encre)' : '#FFFFFF' };
+  return { fond:'var(--' + v + ')', texte: v === 'jaune' ? 'var(--encre-fixe)' : '#FFFFFF' };
 }
 function styleCouleur(slug){ const c = couleur(slug); return '--c:' + c.fond + ';--ct:' + c.texte; }
 
