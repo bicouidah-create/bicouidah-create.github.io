@@ -110,6 +110,16 @@ h3{font-size:1.2rem;font-weight:700}
   @keyframes poser{from{opacity:0;transform:translateY(14px) rotate(-2deg)}to{opacity:1;transform:none}}
 }
 
+/* ---------- Photos libres (Wikimedia Commons) ---------- */
+.photo{margin:0}
+.photo img{width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--surface);clip-path:polygon(0 1%,100% 0,99% 100%,1% 98%)}
+.photo figcaption{font:500 .76rem/1.4 var(--titre);color:var(--encre-2);margin-top:.45rem}
+.photo figcaption strong{display:block;font-size:.92rem;color:var(--encre);margin-bottom:.15rem}
+.photo figcaption a{color:inherit}
+.bande-photos{display:grid;grid-template-columns:repeat(4,1fr);gap:1.4rem}
+@media (max-width:860px){.bande-photos{grid-template-columns:repeat(2,1fr);gap:1.2rem 1rem}}
+.matieres .photo{margin-top:.8rem;max-width:30rem}
+
 /* ---------- Boutons ---------- */
 .bouton{display:inline-block;background:var(--bouton-fond);color:var(--bouton-texte);font:650 1rem var(--titre);padding:.8rem 1.3rem;text-decoration:none;border:none;cursor:pointer;clip-path:polygon(0 4%,100% 0,98% 100%,2% 96%)}
 .bouton:hover{background:var(--bouton-survol)}
@@ -319,6 +329,20 @@ function titrePage(t){ document.title = t ? t + ' - BIC' : 'Bénin Info Culture 
 
 let RUBRIQUES = [];
 
+/* Photos libres de droits (Wikimedia Commons), en attendant les photos de BIC */
+const PHOTOS = {
+  vert:   { fichier:'Pendjari_river.jpg', titre:'La rivière Pendjari, au nord', auteur:'Martin Wegmann', licence:'CC BY-SA 3.0', lien:'https://creativecommons.org/licenses/by-sa/3.0/deed.fr' },
+  ocre:   { fichier:'Benin_Tata_Somba.JPG', titre:'Un tata somba près de Natitingou', auteur:'Martin Wegmann', licence:'CC BY-SA 3.0', lien:'https://creativecommons.org/licenses/by-sa/3.0/deed.fr' },
+  rouge:  { fichier:"Palais_royaux_d'Abomey_en_2020_03.jpg", titre:"Les palais royaux d'Abomey", auteur:'Princekoen', licence:'CC BY-SA 4.0', lien:'https://creativecommons.org/licenses/by-sa/4.0/deed.fr' },
+  lagune: { fichier:'The_village_of_Ganvié_on_Lake_Nokoué.jpg', titre:'Ganvié, sur le lac Nokoué', auteur:'Ondřej Havelka', licence:'CC BY-SA 4.0', lien:'https://creativecommons.org/licenses/by-sa/4.0/deed.fr' }
+};
+function photo(cle, largeur){
+  const p = PHOTOS[cle]; if (!p) return '';
+  const f = encodeURIComponent(p.fichier);
+  return '<figure class="photo"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/' + f + '?width=' + (largeur || 900) + '" alt="' + esc(p.titre) + '" loading="lazy">' +
+    '<figcaption><strong>' + esc(p.titre) + '</strong>Photo : ' + esc(p.auteur) + ', <a href="' + p.lien + '" target="_blank" rel="noopener">' + p.licence + '</a>, via <a href="https://commons.wikimedia.org/wiki/File:' + f + '" target="_blank" rel="noopener">Wikimedia Commons</a></figcaption></figure>';
+}
+
 /* Étiquette de rubrique */
 function tag(r){
   if (!r) return '';
@@ -354,11 +378,11 @@ const SELECT_CONTENU = 'id, titre, resume, type, image_url, publie_le, createur_
 
 /* La composition des cinq matières */
 const COMPOSITION = '<svg viewBox="0 0 400 400" role="img" aria-label="Cinq pièces de couleur assemblées : ocre, indigo, rouge, jaune et bleu">' +
-  '<polygon points="20,40 250,18 238,190 34,206" fill="#B5652B"/>' +
-  '<polygon points="210,60 382,78 370,262 196,240" fill="#2E3A8C"/>' +
-  '<polygon points="46,176 196,168 206,352 30,370" fill="#B3261E"/>' +
-  '<polygon points="170,226 300,214 312,330 180,346" fill="#D99A00"/>' +
-  '<polygon points="280,250 386,262 374,384 268,372" fill="#1F7A99"/></svg>';
+  '<polygon points="20,40 250,18 238,190 34,206" fill="var(--ocre)"/>' +
+  '<polygon points="210,60 382,78 370,262 196,240" fill="var(--indigo)"/>' +
+  '<polygon points="46,176 196,168 206,352 30,370" fill="var(--rouge)"/>' +
+  '<polygon points="170,226 300,214 312,330 180,346" fill="var(--jaune)"/>' +
+  '<polygon points="280,250 386,262 374,384 268,372" fill="var(--lagune)"/></svg>';
 
 const PIECE_APPEL = '<svg viewBox="0 0 70 70" aria-hidden="true"><polygon points="4,8 66,2 62,62 8,68" fill="#2F6B3A"/><polygon points="20,20 50,17 48,48 22,50" fill="#D99A00"/></svg>';
 
@@ -406,7 +430,9 @@ async function pageAccueil(){
   } else {
     html += '<section class="ouverture"><div><h1>La culture du Bénin, racontée par celles et ceux qui la vivent.</h1>' +
       '<p>Arts, patrimoines, langues, spiritualités : BIC ouvre son espace aux journalistes et aux créateurs de tout le pays, du nord au sud.</p>' +
-      '<a class="bouton" href="#/espace">Publier sur BIC</a></div>' + COMPOSITION + '</section>';
+      '<a class="bouton" href="#/espace">Publier sur BIC</a></div>' + COMPOSITION + '</section>' +
+      '<section class="section" aria-labelledby="titre-photos"><h2 id="titre-photos">Le Bénin, du nord au sud</h2><div class="bande-photos">' +
+      ['vert','ocre','rouge','lagune'].map(c => photo(c, 700)).join('') + '</div></section>';
   }
 
   html += '<section class="section" aria-labelledby="titre-agenda"><div class="section-tete"><h2 id="titre-agenda">Prochains rendez-vous</h2><a href="#/agenda">Tout l\'agenda</a></div>';
@@ -558,7 +584,7 @@ function pageAPropos(){
   titrePage('À propos');
   const matieres = [
     ['ocre', 'L\'ocre des tata', 'La terre des maisons-forteresses de l\'Atacora, au nord-ouest.'],
-    ['indigo', 'L\'indigo', 'Les pagnes teints du sud-est et des teintureries du nord.'],
+    ['indigo', 'L\'indigo', 'L\'ahovo, le « tissu de prestige » teint à Ouidah, et les anciennes teintureries du nord, de Kandi à Banikoara.'],
     ['rouge', 'Le rouge des tentures', 'Les tentures cousues d\'Abomey, qui racontent l\'histoire en images.'],
     ['jaune', 'Le jaune des tentures', 'L\'autre couleur vive des tentures d\'Abomey.'],
     ['vert', 'Le vert', 'La vallée de l\'Ouémé et les forêts sacrées.'],
@@ -569,7 +595,7 @@ function pageAPropos(){
     '<p>BIC a été fondé par Doudédji Fatchina, journaliste culturel avec plus de dix-sept ans d\'expérience à la radio et à la télévision nationales, spécialisé dans la culture, le patrimoine et l\'environnement.</p>' +
     '<p>La plateforme ouvre un espace aux journalistes et aux créateurs de contenu de tout le pays. Chaque publication est relue avant d\'être mise en ligne.</p>' +
     '<h2>Nos couleurs</h2><p>Chaque rubrique porte une couleur tirée d\'une matière du Bénin, du nord au sud.</p>' +
-    '<ul class="matieres">' + matieres.map(m => '<li><span class="piece" style="--c:var(--' + m[0] + ')" aria-hidden="true"></span><div><strong>' + m[1] + '</strong><br>' + m[2] + '</div></li>').join('') + '</ul>' +
+    '<ul class="matieres">' + matieres.map(m => '<li><span class="piece" style="--c:var(--' + m[0] + ')" aria-hidden="true"></span><div><strong>' + m[1] + '</strong><br>' + m[2] + photo(m[0], 900) + '</div></li>').join('') + '</ul>' +
     '<h2>Nous écrire</h2><p><a href="mailto:contact@bicouidah.com">contact@bicouidah.com</a></p></section>';
 }
 
