@@ -225,6 +225,44 @@ h3{font-size:1.2rem;font-weight:700}
 .vide-msg{padding:1.4rem;background:var(--surface);font:500 1rem var(--titre)}
 .chargement{padding:3rem 0;font:500 1rem var(--titre);color:var(--encre-2)}
 
+/* ---------- Formulaires de l'espace créateur ---------- */
+.form{display:grid;gap:1.2rem;margin-top:1rem}
+.champ{margin:0;border:none;padding:0;min-width:0}
+.champ label,.etiquette{display:block;font:650 .98rem var(--titre);margin-bottom:.4rem;padding:0}
+.champ input[type=text],.champ input[type=email],.champ input[type=password],.champ input[type=url],.champ input[type=tel],.champ input[type=datetime-local],.champ select,.champ textarea,#filtre-langues{
+  width:100%;font:400 1rem/1.4 var(--titre);padding:.75rem .85rem;border:1.5px solid var(--ligne);background:var(--fond);color:var(--encre);border-radius:0;margin-bottom:.4rem}
+.champ textarea.texte-long{font:400 1.05rem/1.6 var(--texte)}
+.champ input:focus,.champ select:focus,.champ textarea:focus,#filtre-langues:focus{outline:none;border-color:var(--lagune)}
+.champ input[type=file]{font:500 .92rem var(--titre);max-width:100%}
+.aide{font:500 .84rem/1.4 var(--titre);color:var(--encre-2);margin:.2rem 0 0}
+.apercu-image img{max-width:260px;max-height:200px;object-fit:cover;margin-bottom:.6rem}
+.onglets{display:flex;gap:.5rem;margin:1.4rem 0 1rem}
+.onglets button{font:650 1rem var(--titre);padding:.65rem 1rem;border:1.5px solid var(--encre);background:none;color:var(--encre);cursor:pointer}
+.onglets button[aria-selected="true"]{background:var(--bouton-fond);color:var(--bouton-texte);border-color:var(--bouton-fond)}
+.message{padding:.9rem 1rem;font:500 .98rem/1.45 var(--titre);background:var(--surface);border-left:4px solid var(--lagune);margin:1rem 0}
+.message.erreur{border-left-color:var(--rouge)}
+.message.ok{border-left-color:var(--vert)}
+.lien-bouton{background:none;border:none;color:var(--encre);text-decoration:underline;font:600 .95rem var(--titre);cursor:pointer;padding:.3rem 0}
+.lien-bouton.danger{color:var(--rouge)}
+.actions{display:flex;flex-wrap:wrap;gap:.7rem;margin:1.2rem 0}
+.choix-ligne{display:flex;flex-wrap:wrap;gap:1.2rem}
+.choix{display:flex;gap:.5rem;align-items:flex-start;font:500 1rem var(--titre);cursor:pointer}
+.choix.bloc{padding:.7rem 0;border-bottom:1px solid var(--ligne)}
+.choix input{margin-top:.25rem;accent-color:var(--lagune)}
+.deux-colonnes{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media (max-width:600px){.deux-colonnes{grid-template-columns:1fr}}
+.cases-langues{max-height:15rem;overflow:auto;border:1.5px solid var(--ligne);padding:.7rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:.35rem 1rem}
+.cases-langues label{font:500 .95rem var(--titre);display:flex;gap:.4rem;align-items:center;cursor:pointer}
+.cases-langues input{accent-color:var(--lagune)}
+.liste-perso{list-style:none;padding:0;margin:0 0 1.5rem}
+.liste-perso li{padding:1rem 0;border-bottom:1px solid var(--ligne)}
+.liste-perso a{text-decoration:none}.liste-perso a:hover{text-decoration:underline}
+.statut{display:inline-block;font:650 .78rem var(--titre);padding:.15rem .5rem;margin-top:.35rem;background:var(--surface)}
+.statut-publie{background:var(--vert);color:#fff}
+.statut-refuse{background:var(--rouge);color:#fff}
+.statut-en_attente{background:var(--jaune);color:var(--encre-fixe)}
+.motif{margin:.4rem 0 0;font:500 .9rem var(--titre);color:var(--rouge)}
+
 /* ---------- Pied de page ---------- */
 .pied{border-top:1px solid var(--ligne);padding:2.4rem 0 3rem;font:500 .95rem var(--titre)}
 .pied-inner{display:flex;justify-content:space-between;gap:2rem;flex-wrap:wrap}
@@ -295,7 +333,7 @@ h3{font-size:1.2rem;font-weight:700}
    ========================================================= */
 const SUPABASE_URL = 'https://sxhhidejldqqgcuyjfwv.supabase.co';
 const SUPABASE_CLE = 'sb_publishable_B7Ls5-LBiaSnAxNa12NsWw_SLBHfAhO';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_CLE);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_CLE, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' } });
 const SITE = 'https://bicouidah.com/';
 const app = document.getElementById('app');
 
@@ -616,12 +654,414 @@ async function pagePartenaires(){
     '<p><a class="bouton" href="mailto:contact@bicouidah.com?subject=Partenariat BIC">Écrire à BIC</a></p></section>';
 }
 
-function pageEspace(){
+/* =========================================================
+   ESPACE CRÉATEUR (morceau 2)
+   ========================================================= */
+let MSG_AUTH = '';
+let ONGLET = 'connexion';
+let LANGUES = null;
+const STATUTS = { brouillon:'Brouillon', en_attente:'En attente de validation', publie:'Publié', refuse:'Refusé', annule:'Annulé' };
+
+async function utilisateur(){ const { data } = await sb.auth.getSession(); return data.session ? data.session.user : null; }
+async function chargerLangues(){ if (!LANGUES) { const { data } = await sb.from('langues').select('id, nom').order('nom'); LANGUES = data || []; } return LANGUES; }
+
+function traduireErreur(err){
+  const m = (err && err.message) || String(err || '');
+  if (/Invalid login credentials/i.test(m)) return 'E-mail ou mot de passe incorrect.';
+  if (/Email not confirmed/i.test(m)) return 'Votre adresse n\'est pas encore confirmée. Ouvrez l\'e-mail de confirmation envoyé par BIC, puis réessayez.';
+  if (/rate limit|too many|security purposes/i.test(m)) return 'Trop de demandes en peu de temps. Patientez un moment, puis réessayez.';
+  if (/already registered|already been registered/i.test(m)) return 'Un compte existe déjà avec cette adresse. Connectez-vous plutôt.';
+  if (/Password should be/i.test(m)) return 'Le mot de passe est trop court : 8 caractères au minimum.';
+  if (/Signups not allowed/i.test(m)) return 'Les inscriptions sont fermées pour le moment.';
+  if (/row-level security|violates/i.test(m)) return 'Action refusée : votre compte n\'a pas (encore) les droits nécessaires.';
+  if (/Failed to fetch|NetworkError/i.test(m)) return 'La connexion internet a échoué. Vérifiez-la, puis réessayez.';
+  return 'Une erreur est survenue : ' + m;
+}
+function message(id, texte, type){ const el = document.getElementById(id); if (el) { el.className = 'message' + (type ? ' ' + type : ''); el.textContent = texte; el.hidden = !texte; } }
+function val(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function versLocal(iso){ if (!iso) return ''; const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+function puceStatut(s){ return '<span class="statut statut-' + esc(s) + '">' + (STATUTS[s] || esc(s)) + '</span>'; }
+
+/* Réduire une photo de téléphone avant l'envoi (max 1600 px, JPEG) */
+async function reduireImage(fichier){
+  const url = URL.createObjectURL(fichier);
+  try {
+    const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = url; });
+    const max = 1600, r = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement('canvas'); c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+    return await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.82));
+  } finally { URL.revokeObjectURL(url); }
+}
+async function envoyerImage(fichier, uid){
+  const blob = await reduireImage(fichier);
+  const chemin = uid + '/' + Date.now() + '.jpg';
+  const { error } = await sb.storage.from('medias').upload(chemin, blob, { contentType:'image/jpeg', upsert:false });
+  if (error) throw error;
+  return sb.storage.from('medias').getPublicUrl(chemin).data.publicUrl;
+}
+function champImage(id, actuelle, libelle){
+  const u = urlSure(actuelle);
+  return '<div class="champ"><label for="' + id + '">' + libelle + '</label>' +
+    '<div class="apercu-image" id="' + id + '-apercu">' + (u ? '<img src="' + esc(u) + '" alt="Image actuelle">' : '') + '</div>' +
+    '<input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp">' +
+    '<p class="aide">Une photo depuis votre téléphone. Elle sera réduite automatiquement avant l\'envoi.</p></div>';
+}
+function brancherApercu(id){
+  const input = document.getElementById(id); if (!input) return;
+  input.addEventListener('change', () => {
+    const f = input.files && input.files[0]; const ap = document.getElementById(id + '-apercu');
+    if (f && ap) ap.innerHTML = '<img src="' + URL.createObjectURL(f) + '" alt="Nouvelle image choisie">';
+  });
+}
+async function casesLangues(choisies){
+  const langues = await chargerLangues();
+  return '<div class="champ"><span class="etiquette">Communautés linguistiques concernées</span>' +
+    '<input type="text" id="filtre-langues" placeholder="Chercher une langue…" aria-label="Chercher une langue">' +
+    '<div class="cases-langues" id="cases-langues">' + langues.map(l =>
+      '<label><input type="checkbox" value="' + l.id + '"' + (choisies.includes(l.id) ? ' checked' : '') + '> ' + esc(l.nom) + '</label>').join('') + '</div>' +
+    '<p class="aide">Facultatif. Cochez les langues et communautés dont parle ce contenu.</p></div>';
+}
+function brancherFiltreLangues(){
+  const f = document.getElementById('filtre-langues'); if (!f) return;
+  f.addEventListener('input', () => {
+    const q = f.value.trim().toLowerCase();
+    document.querySelectorAll('#cases-langues label').forEach(l => { l.hidden = q && !l.textContent.toLowerCase().includes(q); });
+  });
+}
+function languesCochees(){ return [...document.querySelectorAll('#cases-langues input:checked')].map(i => i.value); }
+
+async function pageEspace(sous, id){
   titrePage('Espace créateur');
-  app.innerHTML = '<section class="page"><h1>Espace créateur</h1>' +
-    '<p>L\'espace créateur ouvre très bientôt. Vous pourrez y créer votre profil, publier vos articles, vidéos et audios, et annoncer gratuitement vos événements dans l\'agenda.</p>' +
-    '<p>Pour être prévenu dès l\'ouverture, et peut-être compter parmi les vingt créateurs fondateurs, inscrivez-vous à la lettre de BIC ci-dessous ou écrivez-nous.</p>' +
-    '<p><a class="bouton" href="mailto:contact@bicouidah.com?subject=Je veux devenir créateur fondateur">Je veux devenir créateur</a></p></section>';
+  const u = await utilisateur();
+  if (sous === 'mot-de-passe') return vueNouveauMotDePasse(u);
+  if (!u) return vueConnexion();
+  const { data: profil } = await sb.from('createurs').select('*').eq('id', u.id).maybeSingle();
+  const p = profil || { id: u.id, nom: '', statut: 'en_attente' };
+  if (sous === 'profil') return vueProfil(u, p);
+  if (sous === 'contenu') return vueContenu(u, p, id);
+  if (sous === 'evenement') return vueEvenement(u, p, id);
+  return vueTableau(u, p);
+}
+
+/* ----- Connexion et inscription ----- */
+function vueConnexion(){
+  const ong = (cle, texte) => '<button type="button" role="tab" data-onglet="' + cle + '" aria-selected="' + (ONGLET === cle) + '">' + texte + '</button>';
+  let html = '<section class="page"><h1>Espace créateur</h1>' +
+    '<p>Journalistes, artistes, chercheurs, conteurs : créez votre espace pour publier sur BIC et annoncer gratuitement vos événements.</p>' +
+    '<div class="onglets" role="tablist">' + ong('connexion', 'Se connecter') + ong('inscription', 'Créer mon compte') + '</div>' +
+    '<p class="message" id="msg-auth" role="status" hidden></p>';
+  if (ONGLET === 'connexion') {
+    html += '<form class="form" id="form-connexion" novalidate>' +
+      '<div class="champ"><label for="c-email">Adresse e-mail</label><input type="email" id="c-email" autocomplete="email" required></div>' +
+      '<div class="champ"><label for="c-mdp">Mot de passe</label><input type="password" id="c-mdp" autocomplete="current-password"></div>' +
+      '<div><button class="bouton" type="submit">Se connecter</button></div>' +
+      '<p class="aide">Pas de mot de passe, ou vous l\'avez oublié ?</p>' +
+      '<p><button type="button" class="lien-bouton" id="c-lien">Recevoir un lien de connexion par e-mail</button><br>' +
+      '<button type="button" class="lien-bouton" id="c-oubli">Choisir un nouveau mot de passe</button></p></form>';
+  } else {
+    html += '<form class="form" id="form-inscription" novalidate>' +
+      '<div class="champ"><label for="i-nom">Nom complet</label><input type="text" id="i-nom" autocomplete="name" required></div>' +
+      '<div class="champ"><label for="i-email">Adresse e-mail</label><input type="email" id="i-email" autocomplete="email" required></div>' +
+      '<div class="champ"><label for="i-mdp">Mot de passe</label><input type="password" id="i-mdp" autocomplete="new-password" minlength="8"><p class="aide">8 caractères au minimum.</p></div>' +
+      '<div><button class="bouton" type="submit">Créer mon compte</button></div>' +
+      '<p class="aide">Vous préférez ne pas retenir de mot de passe ?</p>' +
+      '<p><button type="button" class="lien-bouton" id="i-lien">Créer mon compte avec un lien envoyé par e-mail</button></p></form>';
+  }
+  html += '</section>';
+  app.innerHTML = html;
+  if (MSG_AUTH) { message('msg-auth', MSG_AUTH, 'erreur'); MSG_AUTH = ''; }
+  document.querySelectorAll('[data-onglet]').forEach(b => b.addEventListener('click', () => { ONGLET = b.dataset.onglet; vueConnexion(); }));
+
+  const emailValide = e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
+  if (ONGLET === 'connexion') {
+    document.getElementById('form-connexion').addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = val('c-email').toLowerCase(), mdp = document.getElementById('c-mdp').value;
+      if (!emailValide(email) || !mdp) return message('msg-auth', 'Saisissez votre adresse e-mail et votre mot de passe.', 'erreur');
+      message('msg-auth', 'Connexion en cours…');
+      const { error } = await sb.auth.signInWithPassword({ email, password: mdp });
+      if (error) return message('msg-auth', traduireErreur(error), 'erreur');
+      router();
+    });
+    document.getElementById('c-lien').addEventListener('click', async () => {
+      const email = val('c-email').toLowerCase();
+      if (!emailValide(email)) return message('msg-auth', 'Saisissez d\'abord votre adresse e-mail ci-dessus.', 'erreur');
+      message('msg-auth', 'Envoi du lien…');
+      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: SITE, shouldCreateUser: false } });
+      if (error) return message('msg-auth', traduireErreur(error), 'erreur');
+      message('msg-auth', 'C\'est envoyé : ouvrez l\'e-mail de BIC envoyé à ' + email + ' et touchez le lien pour vous connecter. Pensez à regarder dans les spams.', 'ok');
+    });
+    document.getElementById('c-oubli').addEventListener('click', async () => {
+      const email = val('c-email').toLowerCase();
+      if (!emailValide(email)) return message('msg-auth', 'Saisissez d\'abord votre adresse e-mail ci-dessus.', 'erreur');
+      message('msg-auth', 'Envoi en cours…');
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: SITE });
+      if (error) return message('msg-auth', traduireErreur(error), 'erreur');
+      message('msg-auth', 'C\'est envoyé : ouvrez l\'e-mail de BIC et touchez le lien pour choisir un nouveau mot de passe.', 'ok');
+    });
+  } else {
+    document.getElementById('form-inscription').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nom = val('i-nom'), email = val('i-email').toLowerCase(), mdp = document.getElementById('i-mdp').value;
+      if (!nom) return message('msg-auth', 'Indiquez votre nom complet.', 'erreur');
+      if (!emailValide(email)) return message('msg-auth', 'Cette adresse e-mail n\'est pas valide.', 'erreur');
+      if (mdp.length < 8) return message('msg-auth', 'Le mot de passe doit contenir au moins 8 caractères.', 'erreur');
+      message('msg-auth', 'Création du compte…');
+      const { data, error } = await sb.auth.signUp({ email, password: mdp, options: { data: { nom }, emailRedirectTo: SITE } });
+      if (error) return message('msg-auth', traduireErreur(error), 'erreur');
+      if (data.session) return router();
+      message('msg-auth', 'Votre compte est créé. Dernière étape : ouvrez l\'e-mail envoyé à ' + email + ' et touchez le lien de confirmation. Pensez à regarder dans les spams.', 'ok');
+    });
+    document.getElementById('i-lien').addEventListener('click', async () => {
+      const nom = val('i-nom'), email = val('i-email').toLowerCase();
+      if (!nom) return message('msg-auth', 'Indiquez d\'abord votre nom complet.', 'erreur');
+      if (!emailValide(email)) return message('msg-auth', 'Saisissez d\'abord une adresse e-mail valide.', 'erreur');
+      message('msg-auth', 'Envoi du lien…');
+      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: SITE, data: { nom } } });
+      if (error) return message('msg-auth', traduireErreur(error), 'erreur');
+      message('msg-auth', 'C\'est envoyé : ouvrez l\'e-mail envoyé à ' + email + ' et touchez le lien pour entrer dans votre espace. Pensez à regarder dans les spams.', 'ok');
+    });
+  }
+}
+
+function vueNouveauMotDePasse(u){
+  if (!u) { MSG_AUTH = 'Le lien a expiré. Demandez un nouveau lien depuis la page de connexion.'; location.hash = '#/espace'; return; }
+  app.innerHTML = '<section class="page"><h1>Nouveau mot de passe</h1><p class="message" id="msg-mdp" role="status" hidden></p>' +
+    '<form class="form" id="form-mdp" novalidate><div class="champ"><label for="n-mdp">Nouveau mot de passe</label><input type="password" id="n-mdp" autocomplete="new-password" minlength="8"><p class="aide">8 caractères au minimum.</p></div>' +
+    '<div><button class="bouton" type="submit">Enregistrer</button></div></form></section>';
+  document.getElementById('form-mdp').addEventListener('submit', async e => {
+    e.preventDefault();
+    const mdp = document.getElementById('n-mdp').value;
+    if (mdp.length < 8) return message('msg-mdp', 'Le mot de passe doit contenir au moins 8 caractères.', 'erreur');
+    const { error } = await sb.auth.updateUser({ password: mdp });
+    if (error) return message('msg-mdp', traduireErreur(error), 'erreur');
+    location.hash = '#/espace';
+  });
+}
+
+/* ----- Tableau de bord ----- */
+async function vueTableau(u, p){
+  const [cs, es] = await Promise.all([
+    sb.from('contenus').select('id, titre, statut, motif_refus, type, updated_at').eq('createur_id', u.id).order('updated_at', { ascending:false }),
+    sb.from('evenements').select('id, titre, statut, motif_refus, date_debut, option_payante, paiement_statut').eq('auteur_id', u.id).order('date_debut', { ascending:false })
+  ]);
+  let bandeau = '';
+  if (p.statut === 'valide') bandeau = '<p class="message ok">Compte validé' + (p.fondateur ? ', avec le badge « Créateur fondateur »' : '') + '. Vous pouvez publier sur BIC.</p>';
+  else if (p.statut === 'suspendu') bandeau = '<p class="message erreur">Votre compte est suspendu. Pour en savoir plus, écrivez à <a href="mailto:contact@bicouidah.com">contact@bicouidah.com</a>.</p>';
+  else bandeau = '<p class="message">Votre compte est en attente de validation par BIC. En attendant, complétez votre profil (photo, biographie, spécialité) : c\'est ce que BIC regarde pour valider. Vous pouvez déjà annoncer vos événements dans l\'agenda.</p>';
+
+  const contenus = cs.data || [], evts = es.data || [];
+  app.innerHTML = '<section class="page" style="max-width:none">' +
+    '<div class="section-tete"><h1>Bonjour' + (p.nom ? ', ' + esc(p.nom) : '') + '</h1><button type="button" class="lien-bouton" id="deconnexion">Se déconnecter</button></div>' +
+    bandeau +
+    '<div class="actions">' + (p.statut === 'valide' ? '<a class="bouton" href="#/espace/contenu/nouveau">Nouveau contenu</a>' : '') +
+    '<a class="bouton secondaire" href="#/espace/evenement/nouveau">Annoncer un événement</a>' +
+    '<a class="bouton secondaire" href="#/espace/profil">Mon profil</a></div>' +
+    '<h2>Mes contenus</h2>' + (contenus.length ? '<ul class="liste-perso">' + contenus.map(c =>
+      '<li><div><a href="#/espace/contenu/' + c.id + '"><strong>' + esc(c.titre) + '</strong></a><br>' + puceStatut(c.statut) +
+      (c.statut === 'publie' ? ' <a class="meta" href="#/contenu/' + c.id + '">Voir en ligne</a>' : '') +
+      (c.statut === 'refuse' && c.motif_refus ? '<p class="motif">Motif : ' + esc(c.motif_refus) + '</p>' : '') + '</div></li>').join('') + '</ul>'
+      : '<p class="vide-msg">' + (p.statut === 'valide' ? 'Aucun contenu pour l\'instant. Lancez-vous : « Nouveau contenu ».' : 'Vous pourrez publier dès que votre compte sera validé.') + '</p>') +
+    '<h2>Mes événements</h2>' + (evts.length ? '<ul class="liste-perso">' + evts.map(e =>
+      '<li><div><a href="#/espace/evenement/' + e.id + '"><strong>' + esc(e.titre) + '</strong></a><br><span class="meta">' + fmtHeure(e.date_debut) + '</span><br>' + puceStatut(e.statut) +
+      (e.option_payante !== 'aucune' ? ' <span class="meta">Option « ' + (e.option_payante === 'une' ? 'la une' : 'affiche sur les articles') + ' » : ' + (e.paiement_statut === 'paye' ? 'payée' : 'BIC vous contactera pour le tarif') + '</span>' : '') +
+      (e.statut === 'refuse' && e.motif_refus ? '<p class="motif">Motif : ' + esc(e.motif_refus) + '</p>' : '') + '</div></li>').join('') + '</ul>'
+      : '<p class="vide-msg">Aucun événement annoncé. L\'annonce dans l\'agenda est gratuite.</p>') +
+    '</section>';
+  document.getElementById('deconnexion').addEventListener('click', async () => { await sb.auth.signOut(); ONGLET = 'connexion'; location.hash = '#/'; });
+}
+
+/* ----- Profil ----- */
+function vueProfil(u, p){
+  titrePage('Mon profil');
+  app.innerHTML = '<section class="page"><p><a href="#/espace">← Mon espace</a></p><h1>Mon profil</h1>' +
+    '<p class="aide">Ce profil est public une fois votre compte validé : il apparaît avec vos contenus.</p>' +
+    '<p class="message" id="msg-profil" role="status" hidden></p>' +
+    '<form class="form" id="form-profil" novalidate>' +
+    '<div class="champ"><label for="p-nom">Nom complet</label><input type="text" id="p-nom" value="' + esc(p.nom) + '" required></div>' +
+    '<div class="champ"><label for="p-spec">Spécialité</label><input type="text" id="p-spec" value="' + esc(p.specialite) + '" placeholder="Par exemple : patrimoine vodun, musique traditionnelle…"></div>' +
+    '<div class="champ"><label for="p-bio">Biographie</label><textarea id="p-bio" rows="6" placeholder="Qui êtes-vous ? Quel est votre parcours ?">' + esc(p.bio) + '</textarea></div>' +
+    champImage('p-photo', p.photo_url, 'Photo de profil') +
+    '<div><button class="bouton" type="submit">Enregistrer mon profil</button></div></form></section>';
+  brancherApercu('p-photo');
+  document.getElementById('form-profil').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nom = val('p-nom'); if (!nom) return message('msg-profil', 'Le nom est obligatoire.', 'erreur');
+    message('msg-profil', 'Enregistrement…');
+    try {
+      const maj = { nom, specialite: val('p-spec') || null, bio: val('p-bio') || null };
+      const f = document.getElementById('p-photo').files[0];
+      if (f) maj.photo_url = await envoyerImage(f, u.id);
+      const { error } = await sb.from('createurs').update(maj).eq('id', u.id);
+      if (error) throw error;
+      message('msg-profil', 'Profil enregistré.', 'ok');
+    } catch (err) { message('msg-profil', traduireErreur(err), 'erreur'); }
+  });
+}
+
+/* ----- Rédaction d'un contenu ----- */
+async function vueContenu(u, p, id){
+  const nouveau = !id || id === 'nouveau';
+  let c = { type:'article', titre:'', rubrique_id:'', resume:'', corps:'', image_url:'', media_url:'', statut:'brouillon' }, choisies = [];
+  if (!nouveau) {
+    const { data } = await sb.from('contenus').select('*, contenus_langues(langue_id)').eq('id', id).eq('createur_id', u.id).maybeSingle();
+    if (!data) return pageIntrouvable();
+    c = data; choisies = (data.contenus_langues || []).map(x => x.langue_id);
+  }
+  titrePage(nouveau ? 'Nouveau contenu' : 'Modifier un contenu');
+  if (nouveau && p.statut !== 'valide') {
+    app.innerHTML = '<section class="page"><p><a href="#/espace">← Mon espace</a></p><h1>Nouveau contenu</h1><p class="message">Vous pourrez publier dès que BIC aura validé votre compte. Complétez votre profil en attendant.</p></section>';
+    return;
+  }
+  if (c.statut === 'publie') {
+    app.innerHTML = '<section class="page"><p><a href="#/espace">← Mon espace</a></p><h1>' + esc(c.titre) + '</h1><p class="message ok">Ce contenu est publié. Pour le modifier, écrivez à <a href="mailto:contact@bicouidah.com">contact@bicouidah.com</a>.</p><p><a class="bouton secondaire" href="#/contenu/' + c.id + '">Voir en ligne</a></p></section>';
+    return;
+  }
+  const radio = (v, t) => '<label class="choix"><input type="radio" name="type" value="' + v + '"' + (c.type === v ? ' checked' : '') + '> ' + t + '</label>';
+  app.innerHTML = '<section class="page"><p><a href="#/espace">← Mon espace</a></p><h1>' + (nouveau ? 'Nouveau contenu' : 'Modifier le contenu') + '</h1>' +
+    (!nouveau ? '<p>' + puceStatut(c.statut) + '</p>' : '') +
+    (c.statut === 'refuse' && c.motif_refus ? '<p class="message erreur">Motif du refus : ' + esc(c.motif_refus) + '. Corrigez, puis renvoyez à BIC.</p>' : '') +
+    '<p class="message" id="msg-contenu" role="status" hidden></p>' +
+    '<form class="form" id="form-contenu" novalidate>' +
+    '<fieldset class="champ"><legend class="etiquette">Type de contenu</legend><div class="choix-ligne">' + radio('article','Article') + radio('video','Vidéo') + radio('audio','Audio') + '</div></fieldset>' +
+    '<div class="champ"><label for="ct-titre">Titre</label><input type="text" id="ct-titre" value="' + esc(c.titre) + '" required></div>' +
+    '<div class="champ"><label for="ct-rub">Rubrique</label><select id="ct-rub"><option value="">Choisir une rubrique…</option>' +
+      RUBRIQUES.map(r => '<option value="' + r.id + '"' + (r.id === c.rubrique_id ? ' selected' : '') + '>' + esc(r.nom) + '</option>').join('') + '</select></div>' +
+    '<div class="champ"><label for="ct-resume">Chapô (le résumé en une ou deux phrases)</label><textarea id="ct-resume" rows="3" maxlength="400">' + esc(c.resume) + '</textarea></div>' +
+    '<div class="champ"><label for="ct-corps">Texte</label><textarea id="ct-corps" class="texte-long" rows="14">' + esc(c.corps) + '</textarea><p class="aide">Laissez une ligne vide entre deux paragraphes.</p></div>' +
+    champImage('ct-image', c.image_url, 'Image principale') +
+    '<div class="champ"><label for="ct-media">Lien de la vidéo ou de l\'audio</label><input type="url" id="ct-media" value="' + esc(c.media_url) + '" placeholder="https://www.youtube.com/…"><p class="aide">YouTube, Audiomack, SoundCloud… Facultatif pour un article.</p></div>' +
+    await casesLangues(choisies) +
+    '<div class="actions"><button class="bouton" type="button" id="ct-envoyer">Envoyer à BIC pour validation</button>' +
+    '<button class="bouton secondaire" type="button" id="ct-brouillon">Enregistrer le brouillon</button></div>' +
+    (!nouveau ? '<p><button type="button" class="lien-bouton danger" id="ct-suppr">Supprimer ce contenu</button></p>' : '') +
+    '</form></section>';
+  brancherApercu('ct-image'); brancherFiltreLangues();
+
+  async function enregistrer(statut){
+    const titre = val('ct-titre'), rubrique_id = val('ct-rub'), corps = val('ct-corps'), media_url = val('ct-media');
+    const type = (document.querySelector('input[name="type"]:checked') || {}).value || 'article';
+    if (!titre) return message('msg-contenu', 'Le titre est obligatoire.', 'erreur');
+    if (statut === 'en_attente') {
+      if (!rubrique_id) return message('msg-contenu', 'Choisissez une rubrique avant d\'envoyer.', 'erreur');
+      if (!corps && !media_url) return message('msg-contenu', 'Ajoutez un texte, ou le lien de votre vidéo ou audio, avant d\'envoyer.', 'erreur');
+    }
+    if (media_url && !urlSure(media_url)) return message('msg-contenu', 'Le lien de la vidéo ou de l\'audio doit commencer par https://', 'erreur');
+    message('msg-contenu', 'Enregistrement…');
+    try {
+      const donnees = { titre, rubrique_id: rubrique_id || null, type, resume: val('ct-resume') || null, corps: corps || null, media_url: media_url || null, statut };
+      const f = document.getElementById('ct-image').files[0];
+      if (f) donnees.image_url = await envoyerImage(f, u.id);
+      let idc = c.id;
+      if (nouveau) {
+        const { data, error } = await sb.from('contenus').insert(donnees).select('id').single();
+        if (error) throw error; idc = data.id;
+      } else {
+        const { error } = await sb.from('contenus').update(donnees).eq('id', idc);
+        if (error) throw error;
+        await sb.from('contenus_langues').delete().eq('contenu_id', idc);
+      }
+      const langues = languesCochees();
+      if (langues.length) { const { error } = await sb.from('contenus_langues').insert(langues.map(l => ({ contenu_id: idc, langue_id: l }))); if (error) throw error; }
+      if (statut === 'en_attente') { alert('Merci ! Votre contenu est envoyé à BIC. Vous serez prévenu dès qu\'il sera validé.'); location.hash = '#/espace'; }
+      else if (nouveau) location.hash = '#/espace/contenu/' + idc;
+      else message('msg-contenu', 'Brouillon enregistré.', 'ok');
+    } catch (err) { message('msg-contenu', traduireErreur(err), 'erreur'); }
+  }
+  document.getElementById('ct-envoyer').addEventListener('click', () => enregistrer('en_attente'));
+  document.getElementById('ct-brouillon').addEventListener('click', () => enregistrer('brouillon'));
+  const s = document.getElementById('ct-suppr');
+  if (s) s.addEventListener('click', async () => {
+    if (!confirm('Supprimer définitivement ce contenu ?')) return;
+    const { error } = await sb.from('contenus').delete().eq('id', c.id);
+    if (error) return message('msg-contenu', traduireErreur(error), 'erreur');
+    location.hash = '#/espace';
+  });
+}
+
+/* ----- Annonce d'un événement ----- */
+async function vueEvenement(u, p, id){
+  const nouveau = !id || id === 'nouveau';
+  let e = { titre:'', description:'', date_debut:'', date_fin:'', lieu:'', ville:'', affiche_url:'', lien:'', contact_nom:'', contact_tel:'', contact_email:'', rubrique_id:'', option_payante:'aucune', statut:'en_attente' }, choisies = [];
+  if (!nouveau) {
+    const { data } = await sb.from('evenements').select('*, evenements_langues(langue_id)').eq('id', id).eq('auteur_id', u.id).maybeSingle();
+    if (!data) return pageIntrouvable();
+    e = data; choisies = (data.evenements_langues || []).map(x => x.langue_id);
+  }
+  titrePage(nouveau ? 'Annoncer un événement' : 'Modifier un événement');
+  if (e.statut === 'publie' || e.statut === 'annule') {
+    app.innerHTML = '<section class="page"><p><a href="#/espace">← Mon espace</a></p><h1>' + esc(e.titre) + '</h1><p>' + puceStatut(e.statut) + '</p><p class="message">Cet événement ne peut plus être modifié ici. Pour un changement ou une annulation, écrivez à <a href="mailto:contact@bicouidah.com">contact@bicouidah.com</a>.</p></section>';
+    return;
+  }
+  const opt = (v, t, aide) => '<label class="choix bloc"><input type="radio" name="option" value="' + v + '"' + (e.option_payante === v ? ' checked' : '') + '> <span><strong>' + t + '</strong><br><span class="aide">' + aide + '</span></span></label>';
+  app.innerHTML = '<section class="page"><p><a href="#/espace">← Mon espace</a></p><h1>' + (nouveau ? 'Annoncer un événement' : 'Modifier l\'événement') + '</h1>' +
+    '<p>L\'annonce dans l\'agenda de BIC est <strong>gratuite</strong>. Elle est publiée après vérification par BIC.</p>' +
+    (e.statut === 'refuse' && e.motif_refus ? '<p class="message erreur">Motif du refus : ' + esc(e.motif_refus) + '. Corrigez, puis renvoyez.</p>' : '') +
+    '<p class="message" id="msg-evt" role="status" hidden></p>' +
+    '<form class="form" id="form-evt" novalidate>' +
+    '<div class="champ"><label for="ev-titre">Nom de l\'événement</label><input type="text" id="ev-titre" value="' + esc(e.titre) + '" required></div>' +
+    '<div class="deux-colonnes"><div class="champ"><label for="ev-debut">Début</label><input type="datetime-local" id="ev-debut" value="' + versLocal(e.date_debut) + '" required></div>' +
+    '<div class="champ"><label for="ev-fin">Fin (facultatif)</label><input type="datetime-local" id="ev-fin" value="' + versLocal(e.date_fin) + '"></div></div>' +
+    '<div class="deux-colonnes"><div class="champ"><label for="ev-lieu">Lieu</label><input type="text" id="ev-lieu" value="' + esc(e.lieu) + '" placeholder="Par exemple : Place Chacha"></div>' +
+    '<div class="champ"><label for="ev-ville">Ville</label><input type="text" id="ev-ville" value="' + esc(e.ville) + '" placeholder="Par exemple : Ouidah"></div></div>' +
+    '<div class="champ"><label for="ev-rub">Rubrique (facultatif)</label><select id="ev-rub"><option value="">Aucune</option>' +
+      RUBRIQUES.map(r => '<option value="' + r.id + '"' + (r.id === e.rubrique_id ? ' selected' : '') + '>' + esc(r.nom) + '</option>').join('') + '</select></div>' +
+    '<div class="champ"><label for="ev-desc">Description</label><textarea id="ev-desc" rows="5">' + esc(e.description) + '</textarea></div>' +
+    champImage('ev-affiche', e.affiche_url, 'Affiche') +
+    '<div class="champ"><label for="ev-lien">Lien pour en savoir plus (facultatif)</label><input type="url" id="ev-lien" value="' + esc(e.lien) + '" placeholder="https://…"></div>' +
+    '<fieldset class="champ"><legend class="etiquette">Contact</legend><p class="aide">Attention : ces coordonnées seront visibles du public sur le site.</p>' +
+    '<input type="text" id="ev-cnom" value="' + esc(e.contact_nom) + '" placeholder="Nom" aria-label="Nom du contact">' +
+    '<input type="tel" id="ev-ctel" value="' + esc(e.contact_tel) + '" placeholder="Téléphone" aria-label="Téléphone du contact">' +
+    '<input type="email" id="ev-cmail" value="' + esc(e.contact_email) + '" placeholder="E-mail" aria-label="E-mail du contact"></fieldset>' +
+    await casesLangues(choisies) +
+    '<fieldset class="champ"><legend class="etiquette">Visibilité</legend>' +
+      opt('aucune', 'Agenda seulement (gratuit)', 'Votre événement apparaît dans l\'agenda de BIC.') +
+      opt('une', 'La une (payant)', 'Votre événement en ouverture de la page d\'accueil. BIC vous contacte pour le tarif.') +
+      opt('affiche_articles', 'Affiche sur les articles (payant)', 'Votre affiche sur les contenus les plus lus. BIC vous contacte pour le tarif.') +
+    '</fieldset>' +
+    '<div class="actions"><button class="bouton" type="submit">Envoyer à BIC</button></div>' +
+    (!nouveau ? '<p><button type="button" class="lien-bouton danger" id="ev-suppr">Supprimer cette annonce</button></p>' : '') +
+    '</form></section>';
+  brancherApercu('ev-affiche'); brancherFiltreLangues();
+
+  document.getElementById('form-evt').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const titre = val('ev-titre'), debut = val('ev-debut'), fin = val('ev-fin');
+    if (!titre) return message('msg-evt', 'Le nom de l\'événement est obligatoire.', 'erreur');
+    if (!debut) return message('msg-evt', 'Indiquez la date et l\'heure de début.', 'erreur');
+    if (fin && new Date(fin) < new Date(debut)) return message('msg-evt', 'La fin ne peut pas être avant le début.', 'erreur');
+    const lien = val('ev-lien'); if (lien && !urlSure(lien)) return message('msg-evt', 'Le lien doit commencer par https://', 'erreur');
+    message('msg-evt', 'Envoi en cours…');
+    try {
+      const donnees = { titre, date_debut: new Date(debut).toISOString(), date_fin: fin ? new Date(fin).toISOString() : null,
+        lieu: val('ev-lieu') || null, ville: val('ev-ville') || null, rubrique_id: val('ev-rub') || null, description: val('ev-desc') || null,
+        lien: lien || null, contact_nom: val('ev-cnom') || null, contact_tel: val('ev-ctel') || null, contact_email: val('ev-cmail') || null,
+        option_payante: (document.querySelector('input[name="option"]:checked') || {}).value || 'aucune', statut: 'en_attente' };
+      const f = document.getElementById('ev-affiche').files[0];
+      if (f) donnees.affiche_url = await envoyerImage(f, u.id);
+      let ide = e.id;
+      if (nouveau) {
+        const { data, error } = await sb.from('evenements').insert(donnees).select('id').single();
+        if (error) throw error; ide = data.id;
+      } else {
+        const { error } = await sb.from('evenements').update(donnees).eq('id', ide);
+        if (error) throw error;
+        await sb.from('evenements_langues').delete().eq('evenement_id', ide);
+      }
+      const langues = languesCochees();
+      if (langues.length) { const { error } = await sb.from('evenements_langues').insert(langues.map(l => ({ evenement_id: ide, langue_id: l }))); if (error) throw error; }
+      alert('Merci ! Votre événement est envoyé à BIC. Il apparaîtra dans l\'agenda après vérification.');
+      location.hash = '#/espace';
+    } catch (err) { message('msg-evt', traduireErreur(err), 'erreur'); }
+  });
+  const s = document.getElementById('ev-suppr');
+  if (s) s.addEventListener('click', async () => {
+    if (!confirm('Supprimer définitivement cette annonce ?')) return;
+    const { error } = await sb.from('evenements').delete().eq('id', e.id);
+    if (error) return message('msg-evt', traduireErreur(error), 'erreur');
+    location.hash = '#/espace';
+  });
 }
 
 function pageIntrouvable(){
@@ -640,7 +1080,7 @@ async function chargerRubriques(){
 
 async function router(){
   const morceaux = (location.hash.replace(/^#\/?/, '') || '').split('/');
-  const [page, param] = [morceaux[0], decodeURIComponent(morceaux[1] || '')];
+  const [page, param, param2] = [morceaux[0], decodeURIComponent(morceaux[1] || ''), decodeURIComponent(morceaux[2] || '')];
   document.querySelectorAll('.nav-principale a').forEach(a => {
     const cible = a.getAttribute('href').replace(/^#\/?/, '');
     a.toggleAttribute('aria-current', cible === page);
@@ -658,7 +1098,7 @@ async function router(){
     else if (page === 'communaute') await pageCommunaute(param);
     else if (page === 'a-propos') pageAPropos();
     else if (page === 'partenaires') await pagePartenaires();
-    else if (page === 'espace') pageEspace();
+    else if (page === 'espace') await pageEspace(param, param2);
     else pageIntrouvable();
   } catch(e) {
     console.error(e);
@@ -692,7 +1132,20 @@ document.getElementById('form-lettre').addEventListener('submit', async e => {
 });
 
 window.addEventListener('hashchange', router);
-chargerRubriques().finally(router);
+sb.auth.onAuthStateChange(evt => { if (evt === 'PASSWORD_RECOVERY') location.hash = '#/espace/mot-de-passe'; });
+async function demarrer(){
+  const h = location.hash;
+  if (/access_token=|error_description=|error_code=/.test(h)) {
+    const params = new URLSearchParams(h.replace(/^#\/?/, ''));
+    const erreur = params.get('error_description') || params.get('error_code');
+    if (erreur) MSG_AUTH = /expired|invalid/i.test(erreur) ? 'Ce lien a expiré ou a déjà servi. Demandez-en un nouveau ci-dessous.' : 'La connexion a échoué : ' + erreur;
+    await sb.auth.getSession();
+    history.replaceState(null, '', location.pathname + (params.get('type') === 'recovery' ? '#/espace/mot-de-passe' : '#/espace'));
+  }
+  await chargerRubriques();
+  router();
+}
+demarrer();
 </script>
 </body>
 </html>
