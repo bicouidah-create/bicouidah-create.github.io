@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#1C1A4A">
 <link rel="icon" type="image/png" href="icone-bic.png">
 <link rel="apple-touch-icon" href="icone-bic.png">
-<meta property="og:image" content="https://bicouidah.com/logo-bic.jpg">
+<meta property="og:image" content="https://bicouidah.com/logo-bic.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&display=swap" rel="stylesheet">
@@ -41,8 +41,8 @@ h3{font-size:1.2rem;font-weight:700}
 .entete{border-bottom:1px solid var(--ligne);background:var(--fond);position:sticky;top:0;z-index:20}
 .entete-haut{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0}
 .logo{display:flex;align-items:center;gap:.7rem;text-decoration:none}
-.logo img{width:56px;height:56px;flex:none;mix-blend-mode:multiply}
-.logo-grand{width:180px;height:180px;mix-blend-mode:multiply;margin:0 0 1rem}
+.logo img{width:56px;height:56px;flex:none}
+.logo-grand{width:180px;height:180px;margin:0 0 1rem}
 .logo-nom{font:800 1.5rem/1 var(--titre);letter-spacing:-.02em}
 .logo-sous{display:block;font:500 .78rem/1.2 var(--titre);color:var(--encre-2);letter-spacing:0}
 .nav-principale{display:flex;gap:1.4rem;font:600 .98rem var(--titre)}
@@ -212,7 +212,7 @@ h3{font-size:1.2rem;font-weight:700}
   <div class="conteneur">
     <div class="entete-haut">
       <a class="logo" href="#/" aria-label="Bénin Info Culture, accueil">
-        <img src="logo-bic.jpg" alt="" width="56" height="56">
+        <img src="logo-bic.png" alt="" width="56" height="56">
         <span><span class="logo-nom">BIC</span><span class="logo-sous">Bénin Info Culture</span></span>
       </a>
       <button class="bouton-menu" id="bouton-menu" aria-expanded="false" aria-controls="nav">Menu</button>
@@ -547,7 +547,7 @@ function pageAPropos(){
     ['vert', 'Le vert', 'La vallée de l\'Ouémé et les forêts sacrées.'],
     ['lagune', 'Le bleu de la lagune', 'La lagune et l\'océan, de Ouidah à Grand-Popo.']
   ];
-  app.innerHTML = '<section class="page"><img class="logo-grand" src="logo-bic.jpg" alt="Logo de Bénin Info Culture"><h1>À propos de BIC</h1>' +
+  app.innerHTML = '<section class="page"><img class="logo-grand" src="logo-bic.png" alt="Logo de Bénin Info Culture"><h1>À propos de BIC</h1>' +
     '<p>Bénin Info Culture (BIC) est un média culturel né à Ouidah. Sur le web, à la radio et en vidéo, BIC raconte les arts, les patrimoines, les langues et les spiritualités du Bénin, avec celles et ceux qui les font vivre.</p>' +
     '<p>BIC a été fondé par Doudédji Fatchina, journaliste culturel avec plus de dix-sept ans d\'expérience à la radio et à la télévision nationales, spécialisé dans la culture, le patrimoine et l\'environnement.</p>' +
     '<p>La plateforme ouvre un espace aux journalistes et aux créateurs de contenu de tout le pays. Chaque publication est relue avant d\'être mise en ligne.</p>' +
