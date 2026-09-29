@@ -283,6 +283,11 @@ h3{font-size:1.2rem;font-weight:700}
 .petit-bouton.danger{border-color:var(--rouge);color:var(--rouge)}
 .apercu-admin{max-width:320px;margin:.6rem 0}
 
+/* ---------- Victorieux ---------- */
+.victorieux{display:flex;gap:1.1rem;align-items:center;margin:1.6rem 0;padding:1rem;background:var(--surface)}
+.victorieux img{width:96px;height:96px;flex:none}
+.victorieux p{margin:0}
+
 /* ---------- Pied de page ---------- */
 .pied{border-top:1px solid var(--ligne);padding:2.4rem 0 3rem;font:500 .95rem var(--titre)}
 .pied-inner{display:flex;justify-content:space-between;gap:2rem;flex-wrap:wrap}
@@ -674,7 +679,8 @@ async function pagePartenaires(){
     '<p>L\'agenda culturel de BIC est <strong>gratuit</strong> pour tous les acteurs culturels. Pour donner plus de visibilité à votre événement, deux options sont proposées :</p>' +
     '<ul><li><strong>La une</strong> : votre événement en ouverture de la page d\'accueil.</li><li><strong>L\'affiche sur les articles</strong> : votre affiche sur les contenus les plus lus.</li></ul>' +
     '<p>Institutions, festivals, hôtels, agences : écrivez-nous pour connaître les tarifs.</p>' +
-    '<p><a class="bouton" href="mailto:contact@bicouidah.com?subject=Partenariat BIC">Écrire à BIC</a></p></section>';
+    '<div class="victorieux"><img src="logo-victorieux.jpg" alt="Logo de Victorieux" width="96" height="96"><p>La commercialisation des espaces de BIC (la une, les affiches sur les articles, les partenariats) est confiée à <strong>Victorieux</strong>, qui gère les relations avec les annonceurs.</p></div>' +
+    '<p class="actions"><a class="bouton" href="mailto:contact@bicouidah.com?subject=Partenariat BIC">Écrire à BIC</a><a class="bouton secondaire" href="https://www.facebook.com/share/1EgpHAo5cW/" target="_blank" rel="noopener">Page Facebook de Victorieux</a></p></section>';
 }
 
 /* =========================================================
