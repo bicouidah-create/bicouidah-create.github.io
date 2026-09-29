@@ -288,6 +288,37 @@ h3{font-size:1.2rem;font-weight:700}
 .victorieux img{width:96px;height:96px;flex:none}
 .victorieux p{margin:0}
 
+/* ---------- Carte professionnelle ---------- */
+.cartes{display:flex;flex-wrap:wrap;gap:6mm;margin:1.5rem 0}
+.carte-bic{width:85.6mm;height:54mm;background:#FFFFFF;color:#1C1A4A;border-radius:3mm;overflow:hidden;position:relative;box-shadow:0 1px 6px rgba(0,0,0,.25);font-family:var(--titre);-webkit-print-color-adjust:exact;print-color-adjust:exact;flex:none}
+.cb-tete{display:flex;align-items:center;gap:2.5mm;background:#1C1A4A;color:#FFFFFF;padding:2mm 3mm;height:12mm}
+.cb-tete img{width:9mm;height:9mm}
+.cb-tete strong{display:block;font-size:3.2mm;letter-spacing:.2mm;line-height:1.1}
+.cb-tete span{display:block;font-size:2.4mm;color:#E3A712;text-transform:uppercase;letter-spacing:.3mm;font-weight:700}
+.cb-corps{display:flex;gap:3mm;padding:3mm}
+.cb-photo{width:21mm;height:26mm;object-fit:cover;background:#E8E6F0;flex:none}
+.cb-infos{display:flex;flex-direction:column;gap:.9mm;min-width:0}
+.cb-nom{font-size:3.6mm;line-height:1.15}
+.cb-fonction{font-size:2.6mm;color:#4A4870;font-weight:600;margin-bottom:1mm}
+.cb-ligne{font-size:2.4mm;font-weight:700}
+.cb-ligne em{font-style:normal;font-weight:500;color:#4A4870}
+.cb-matieres{position:absolute;left:0;right:0;bottom:0;display:flex;height:2.2mm}
+.cb-matieres i{flex:1}
+.cb-verso{display:flex;gap:3mm;padding:3.5mm 3.5mm 0}
+.cb-qr{width:24mm;flex:none;text-align:center}
+.cb-qr svg{width:24mm;height:24mm;display:block}
+.cb-qr span{font-size:2mm;font-weight:600}
+.cb-texte p{margin:0 0 1.8mm;font-size:2.5mm;line-height:1.35}
+.cb-signature{font-size:2.4mm!important}
+.cb-pied{position:absolute;left:3.5mm;right:3.5mm;bottom:2.5mm;margin:0;font-size:1.9mm;line-height:1.3;color:#4A4870}
+@page{size:A4;margin:15mm}
+@media print{
+  .entete,.lettre,.pied,.no-print,.message{display:none!important}
+  body{background:#FFFFFF}
+  .page{padding:0}
+  .carte-bic{box-shadow:none;border:.2mm solid #BBBBBB}
+}
+
 /* ---------- Pied de page ---------- */
 .pied{border-top:1px solid var(--ligne);padding:2.4rem 0 3rem;font:500 .95rem var(--titre)}
 .pied-inner{display:flex;justify-content:space-between;gap:2rem;flex-wrap:wrap}
@@ -1153,11 +1184,11 @@ async function adminCreateurs(zone, u){
         '<br><span class="statut statut-' + (c.statut === 'valide' ? 'publie' : c.statut === 'suspendu' ? 'refuse' : 'en_attente') + '">' + noms[c.statut] + '</span>' +
         (c.specialite ? '<br><span class="meta">' + esc(c.specialite) + '</span>' : '') + '<br><span class="meta">Inscrit le ' + fmtDate(c.created_at) + '</span></div></div>' +
         (c.bio ? '<details><summary>Lire la biographie</summary><div class="corps">' + paragraphes(c.bio) + '</div></details>' : '<p class="aide">Profil pas encore complété (pas de biographie).</p>') +
-        (c.id === u.id ? '' : '<div class="boutons-admin">' +
+        (c.id === u.id ? '<div class="boutons-admin"><a class="petit-bouton" href="#/carte/' + c.id + '">' + (c.carte_numero ? 'Ma carte BIC' : 'Émettre ma carte BIC') + '</a></div>' : '<div class="boutons-admin">' +
           (c.statut !== 'valide' ? '<button class="petit-bouton ok" data-cr="' + c.id + '" data-act="valide">Valider</button>' : '') +
           (c.statut !== 'suspendu' ? '<button class="petit-bouton danger" data-cr="' + c.id + '" data-act="suspendu">Suspendre</button>' : '') +
           (c.statut !== 'en_attente' ? '<button class="petit-bouton" data-cr="' + c.id + '" data-act="en_attente">Remettre en attente</button>' : '') +
-          '<button class="petit-bouton" data-cr="' + c.id + '" data-act="fondateur" data-val="' + (!c.fondateur) + '">' + (c.fondateur ? 'Retirer le badge fondateur' : 'Donner le badge fondateur') + '</button></div>') +
+          (c.statut === 'valide' ? '<a class="petit-bouton" href="#/carte/' + c.id + '">' + (c.carte_numero ? 'Carte BIC' : 'Émettre la carte BIC') + '</a>' : '') + '<button class="petit-bouton" data-cr="' + c.id + '" data-act="fondateur" data-val="' + (!c.fondateur) + '">' + (c.fondateur ? 'Retirer le badge fondateur' : 'Donner le badge fondateur') + '</button></div>') +
         '</div>';
     }).join('') : '<p class="vide-msg">Aucun créateur inscrit pour l\'instant.</p>');
   zone.querySelectorAll('[data-cr]').forEach(b => b.addEventListener('click', async () => {
@@ -1355,6 +1386,103 @@ async function adminLangues(zone, u){
   });
 }
 
+/* =========================================================
+   CARTE PROFESSIONNELLE BIC
+   ========================================================= */
+function numeroCarte(c){ return 'BIC-' + String(c.carte_emise).slice(0,4) + '-' + String(c.carte_numero).padStart(4, '0'); }
+function finValidite(c){ const d = new Date(c.carte_emise + 'T12:00:00'); d.setFullYear(d.getFullYear() + 1); return d; }
+const fmtCourt = d => new Intl.DateTimeFormat('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' }).format(d);
+function chargerQR(){
+  if (window.qrcode) return Promise.resolve();
+  const charger = src => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
+  return charger('https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js')
+    .catch(() => charger('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js'));
+}
+function svgQR(texte){ const q = window.qrcode(0, 'M'); q.addData(texte); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); }
+
+async function pageCarte(id){
+  titrePage('Carte professionnelle');
+  const u = await utilisateur();
+  if (!u) { location.hash = '#/espace'; return; }
+  const { data: moi } = await sb.from('createurs').select('est_admin').eq('id', u.id).maybeSingle();
+  if (!moi || !moi.est_admin) { app.innerHTML = '<section class="page"><h1>Accès réservé</h1><p>Les cartes sont émises par l\'administration de BIC.</p></section>'; return; }
+  const { data: c } = await sb.from('createurs').select('*').eq('id', id).maybeSingle();
+  if (!c) return pageIntrouvable();
+  if (c.statut !== 'valide') { app.innerHTML = '<section class="page"><p><a href="#/admin/createurs">← Créateurs</a></p><h1>' + esc(c.nom) + '</h1><p class="message erreur">Une carte ne peut être émise que pour un créateur validé.</p></section>'; return; }
+
+  const formulaire = '<form class="form no-print" id="form-carte" novalidate>' +
+    '<div class="champ"><label for="ca-fonction">Fonction inscrite sur la carte</label><input type="text" id="ca-fonction" value="' + esc(c.fonction || (c.est_admin ? 'Fondateur et directeur' : 'Créateur de contenu')) + '"></div>' +
+    '<div class="actions"><button class="bouton" type="submit">' + (c.carte_numero ? 'Enregistrer' : 'Émettre la carte') + '</button>' +
+    (c.carte_numero ? '<button class="bouton secondaire" type="button" id="ca-renouveler">Renouveler pour un an</button>' : '') + '</div></form>';
+
+  let html = '<section class="page" style="max-width:none"><p class="no-print"><a href="#/admin/createurs">← Créateurs</a></p><h1 class="no-print">Carte professionnelle BIC</h1>' +
+    '<p class="message" id="msg-carte" role="status" hidden></p>' + formulaire;
+
+  if (c.carte_numero) {
+    await chargerQR();
+    const lienVerif = SITE + '#/verifier/' + c.id;
+    const photo = urlSure(c.photo_url);
+    const fin = finValidite(c), expiree = fin < new Date();
+    html += (expiree ? '<p class="message erreur no-print">Cette carte a expiré le ' + fmtCourt(fin) + '. Touche « Renouveler pour un an ».</p>' : '') +
+      '<p class="aide no-print">Pour l\'imprimer : touche « Imprimer », puis choisis « Enregistrer en PDF ». Imprime sur du papier épais, puis découpe et plastifie. Tu peux aussi confier le PDF à un imprimeur pour une carte en plastique rigide.</p>' +
+      '<p class="no-print"><button class="bouton" type="button" onclick="window.print()">Imprimer</button></p>' +
+      '<div class="cartes">' +
+        '<div class="carte-bic recto">' +
+          '<div class="cb-tete"><img src="logo-bic.png" alt=""><div><strong>BÉNIN INFO CULTURE</strong><span>Carte professionnelle</span></div></div>' +
+          '<div class="cb-corps">' + (photo ? '<img class="cb-photo" src="' + esc(photo) + '" alt="">' : '<div class="cb-photo"></div>') +
+          '<div class="cb-infos"><strong class="cb-nom">' + esc(c.nom) + '</strong><span class="cb-fonction">' + esc(c.fonction || '') + '</span>' +
+          '<span class="cb-ligne"><em>N°</em> ' + numeroCarte(c) + '</span><span class="cb-ligne"><em>Valable jusqu\'au</em> ' + fmtCourt(fin) + '</span></div></div>' +
+          '<div class="cb-matieres"><i style="background:#B5652B"></i><i style="background:#2E3A8C"></i><i style="background:#B3261E"></i><i style="background:#D99A00"></i><i style="background:#2F6B3A"></i><i style="background:#1F7A99"></i></div>' +
+        '</div>' +
+        '<div class="carte-bic verso">' +
+          '<div class="cb-verso"><div class="cb-qr">' + svgQR(lienVerif) + '<span>Scannez pour vérifier</span></div>' +
+          '<div class="cb-texte"><p>Le porteur de cette carte est accrédité par Bénin Info Culture (BIC). Merci de lui faciliter l\'accès à l\'information.</p>' +
+          '<p class="cb-signature">Le fondateur<br><strong>Tognon Doudédji Fatchina</strong></p></div></div>' +
+          '<p class="cb-pied">bicouidah.com, contact@bicouidah.com<br>Cette carte ne tient pas lieu de carte de presse officielle.</p>' +
+        '</div>' +
+      '</div>';
+  }
+  app.innerHTML = html + '</section>';
+
+  document.getElementById('form-carte').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fonction = val('ca-fonction') || 'Créateur de contenu';
+    const maj = { fonction };
+    if (!c.carte_numero) {
+      const { data: max } = await sb.from('createurs').select('carte_numero').not('carte_numero', 'is', null).order('carte_numero', { ascending:false }).limit(1);
+      maj.carte_numero = ((max && max[0] && max[0].carte_numero) || 0) + 1;
+      maj.carte_emise = aujourdhui();
+    }
+    const { error } = await sb.from('createurs').update(maj).eq('id', c.id);
+    if (error) return message('msg-carte', traduireErreur(error), 'erreur');
+    pageCarte(c.id);
+  });
+  const ren = document.getElementById('ca-renouveler');
+  if (ren) ren.addEventListener('click', async () => {
+    if (!confirm('Renouveler cette carte pour un an à partir d\'aujourd\'hui ?')) return;
+    const { error } = await sb.from('createurs').update({ carte_emise: aujourdhui() }).eq('id', c.id);
+    if (error) return message('msg-carte', traduireErreur(error), 'erreur');
+    pageCarte(c.id);
+  });
+}
+
+/* Page publique de vérification (ouverte par le code QR) */
+async function pageVerifier(id){
+  titrePage('Vérification de carte');
+  const { data: c } = await sb.from('createurs').select('id, nom, photo_url, fonction, carte_numero, carte_emise').eq('id', id).maybeSingle();
+  let html = '<section class="page"><h1>Vérification d\'une carte BIC</h1>';
+  if (!c || !c.carte_numero) {
+    html += '<p class="message erreur"><strong>Carte non reconnue.</strong> Cette carte n\'a pas été émise par BIC, ou elle a été suspendue. En cas de doute, écrivez à <a href="mailto:contact@bicouidah.com">contact@bicouidah.com</a>.</p>';
+  } else {
+    const fin = finValidite(c), valide = fin >= new Date(), photo = urlSure(c.photo_url);
+    html += '<p class="message ' + (valide ? 'ok' : 'erreur') + '"><strong>' + (valide ? 'Carte valide ✓' : 'Carte expirée') + '</strong>' + (valide ? ' jusqu\'au ' : ' depuis le ') + fmtCourt(fin) + '.</p>' +
+      '<div class="auteur">' + (photo ? '<img src="' + esc(photo) + '" alt="">' : '<span class="avatar" aria-hidden="true"></span>') +
+      '<div><strong>' + esc(c.nom) + '</strong><br><span class="meta">' + esc(c.fonction || '') + '</span><br><span class="meta">N° ' + numeroCarte(c) + '</span></div></div>' +
+      '<p><a href="#/createur/' + c.id + '">Voir son profil et ses contenus</a></p>';
+  }
+  app.innerHTML = html + '</section>';
+}
+
 function pageIntrouvable(){
   titrePage('Page introuvable');
   app.innerHTML = '<section class="page"><h1>Cette page n\'existe pas</h1><p>Le lien est peut-être incomplet, ou le contenu a été retiré.</p><p><a class="bouton" href="#/">Revenir à l\'accueil</a></p></section>';
@@ -1391,6 +1519,8 @@ async function router(){
     else if (page === 'partenaires') await pagePartenaires();
     else if (page === 'espace') await pageEspace(param, param2);
     else if (page === 'admin') await pageAdmin(param, param2);
+    else if (page === 'carte') await pageCarte(param);
+    else if (page === 'verifier') await pageVerifier(param);
     else pageIntrouvable();
   } catch(e) {
     console.error(e);
