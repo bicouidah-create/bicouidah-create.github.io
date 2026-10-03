@@ -395,9 +395,9 @@ const app = document.getElementById('app');
 
 /* Couleur de chaque rubrique : les matières du Bénin */
 const COULEURS = {
-  'vodun-spiritualites':'vert', 'patrimoine-memoire':'rouge', 'langues-ecritures':'indigo',
+  'vodun-spiritualites':'vert', 'patrimoine-memoire':'rouge', 'langues-paroles':'indigo',
   'musique-danse':'jaune', 'arts-visuels':'ocre', 'cinema-audiovisuel':'lagune',
-  'lettres-parole':'indigo', 'artisanat-mode':'ocre', 'cuisine-terroirs':'jaune',
+  'lettres-ecritures':'indigo', 'artisanat-mode':'ocre', 'cuisine-terroirs':'jaune',
   'environnement-culture':'vert', 'agenda-festivals':'rouge', 'science-tradition':'lagune'
 };
 function couleur(slug){
@@ -808,7 +808,7 @@ async function pageEspace(sous, id){
 function vueConnexion(){
   const ong = (cle, texte) => '<button type="button" role="tab" data-onglet="' + cle + '" aria-selected="' + (ONGLET === cle) + '">' + texte + '</button>';
   let html = '<section class="page"><h1>Espace créateur</h1>' +
-    '<p>Journalistes, artistes, chercheurs, conteurs : créez votre espace pour publier sur BIC et annoncer gratuitement vos événements.</p>' +
+    '<p>Journalistes, artistes, chercheurs, conteurs, créateurs de contenus… créez votre espace pour publier sur BIC et annoncer gratuitement vos événements.</p>' +
     '<div class="onglets" role="tablist">' + ong('connexion', 'Se connecter') + ong('inscription', 'Créer mon compte') + '</div>' +
     '<p class="message" id="msg-auth" role="status" hidden></p>';
   if (ONGLET === 'connexion') {
@@ -870,6 +870,7 @@ function vueConnexion(){
       message('msg-auth', 'Création du compte…');
       const { data, error } = await sb.auth.signUp({ email, password: mdp, options: { data: { nom }, emailRedirectTo: SITE } });
       if (error) return message('msg-auth', traduireErreur(error), 'erreur');
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) { ONGLET = 'connexion'; vueConnexion(); return message('msg-auth', 'Ce compte existe déjà avec l\'adresse ' + email + ' : connectez-vous ci-dessous. Si vous avez oublié votre mot de passe, touchez « Choisir un nouveau mot de passe ».', 'erreur'); }
       if (data.session) return router();
       message('msg-auth', 'Votre compte est créé. Dernière étape : ouvrez l\'e-mail envoyé à ' + email + ' et touchez le lien de confirmation. Pensez à regarder dans les spams.', 'ok');
     });
